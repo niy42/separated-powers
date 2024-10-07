@@ -5,7 +5,6 @@ import {RolesManager} from "./RolesManager.sol";
 import {LawsManager} from "./LawsManager.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
-
 /**
  * @dev TBI: Description contract. 
  *
