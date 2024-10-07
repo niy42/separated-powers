@@ -29,7 +29,7 @@ contract RolesManager is Context {
         uint256 amountMembers; 
     }
 
-    mapping(uint64 roleId => Role) private _roles;
+    mapping(uint64 roleId => Role) public roles;
 
     uint64 public constant ADMIN_ROLE = type(uint64).min; // 0
     uint64 public constant PUBLIC_ROLE = type(uint64).max; // 2**64-1
@@ -49,13 +49,14 @@ contract RolesManager is Context {
         _;
     }
 
+    // take out constructor? I think it is not necessary here. I can just inherit this contract and call _setRole in constructor of SeparatedPowers.  
     constructor(address initialAdmin) {
         if (initialAdmin == address(0)) {
             revert RolesManager_InvalidInitialAdmin(address(0));
         }
 
         // admin is active immediately.
-        _grantRole(ADMIN_ROLE, initialAdmin, 0, 0); // this
+        _setRole(ADMIN_ROLE, initialAdmin, 0, 0); // this
     }
 
     // getters //
@@ -99,30 +100,21 @@ contract RolesManager is Context {
             revert RolesManager_LockedRole(roleId);
         }
 
-        bool newMember = _roles[roleId].members[account] == 0;
+        bool newMember = roles[roleId].members[account] == 0;
         bool accessChanged;  
 
         if (access && newMember) {
-            _roles[roleId].members[account] = block.number; 
-            _roles[roleId].amountMembers++; 
+            roles[roleId].members[account] = block.number; 
+            roles[roleId].amountMembers++; 
             accessChanged = true; 
         } else if (!access && !newMember)  {
-          _roles[roleId].members[account] = 0;
-          _roles[roleId].amountMembers +-; // NB! CHECK IF THIS WORKS 
+          roles[roleId].members[account] = 0;
+          roles[roleId].amountMembers +-; // NB! CHECK IF THIS WORKS 
           accessChanged = true;
         }
 
         emit RoleSet(roleId, account, accessChanged);
         return accessChanged;
-    }
-
-    function _checkAuthorized(address targetLaw) private {
-        address caller = _msgSender();
-        // £todo; have to complete this when completing laws infra. 
-            // if (delay == 0) {
-            //     (, uint64 requiredRole, ) = _getAdminRestrictions(_msgData());
-            //     revert RolesManager_UnauthorizedAccount(caller, requiredRole);
-        // }
     }
 
 }
