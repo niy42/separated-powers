@@ -3,6 +3,9 @@ pragma solidity 0.8.26;
 
 import {RolesManager} from "./RolesManager.sol";
 import {LawsManager} from "./LawsManager.sol";
+import {VotesManager} from "./VotesManager.sol";
+import {Law} from "./Law.sol"
+import {Address} from "../utils/Address.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 /**
@@ -19,8 +22,19 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
  * Original contract is abstract, with extensions being plugged in. All this NOT here. Any additional functionality is brought in through external law contracts. 
  * 
  */
-contract SeparatedPowers is EIP712, RolesManager, LawsManager {
+contract SeparatedPowers is EIP712, RolesManager, LawsManager, VotesManager {
+    /* errors */
+    error SeparatedPowers__RestrictedProposer(); 
+    error SeparatedPowers__AccessDenied(); 
+    error SeparatedPowers__UnexpectedProposalState(); 
+    error SeparatedPowers__InvalidProposalId(); 
+    error SeparatedPowers__ProposalAlreadyExecuted(); 
+    error SeparatedPowers__ProposalCancelled(); 
+    error SeparatedPowers__ExecuteCallNotFromActiveLaw(); 
+    error SeparatedPowers_OnlyProposer(address caller); 
+    error SeparatedPowers__ProposalNotActive(); 
 
+    /* Type declarations */
     bytes32 public constant BALLOT_TYPEHASH =
         keccak256("Ballot(uint256 proposalId,uint8 support,address voter,uint256 nonce)");
     bytes32 public constant EXTENDED_BALLOT_TYPEHASH =
@@ -28,19 +42,31 @@ contract SeparatedPowers is EIP712, RolesManager, LawsManager {
             "ExtendedBallot(uint256 proposalId,uint8 support,address voter,uint256 nonce,string reason,bytes params)"
         );
 
+    enum ProposalState {
+        Active,
+        Cancelled,
+        Defeated,
+        Succeeded,
+        Executed
+    }
+
     struct ProposalCore {
         address proposer;
+        address targetLaw; 
         uint48 voteStart;
         uint32 voteDuration;
         bool executed;
-        bool canceled;
+        bool cancelled;
     }
 
-    bytes32 private constant ALL_PROPOSAL_STATES_BITMAP = bytes32((2 ** (uint8(type(ProposalState).max) + 1)) - 1);
+    /* State variables */
+    mapping(uint256 proposalId => ProposalCore) private _proposals;
     string private _name;
 
-    mapping(uint256 proposalId => ProposalCore) private _proposals;
+    /* Events */
+    event ProposalExecuted(uint256 indexed proposalId); 
 
+    /* FUNCTIONS */
     /**
      * @dev Sets the value for {name} and {version}
      */
@@ -82,14 +108,16 @@ contract SeparatedPowers is EIP712, RolesManager, LawsManager {
      * 
      */
     function hashProposal(
+        address targetLaw, 
+        address proposer,  
         address[] memory targets,
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) public pure virtual returns (uint256) {
-        return uint256(keccak256(abi.encode(targets, calldatas, descriptionHash)));
+        return uint256(keccak256(abi.encode(targetLaw, proposer, targets, calldatas, descriptionHash)));
     }
 
-     /**
+    /**
      * @dev returns the State of a proposal. 
      */
     function state(uint256 proposalId) public view virtual returns (ProposalState) {
@@ -101,7 +129,6 @@ contract SeparatedPowers is EIP712, RolesManager, LawsManager {
         if (proposalExecuted) {
             return ProposalState.Executed;
         }
-
         if (proposalCanceled) {
             return ProposalState.Canceled;
         }
@@ -111,7 +138,6 @@ contract SeparatedPowers is EIP712, RolesManager, LawsManager {
         if (start == 0) {
             revert SeperatedPowers__NonexistentProposal(proposalId);
         }
-
         if (start >= block.number) {
             return ProposalState.Pending;
         }
@@ -135,46 +161,19 @@ contract SeparatedPowers is EIP712, RolesManager, LawsManager {
     }
 
     /**
-     * @dev Amount of votes already cast passes the threshold limit.
-     */
-    function _quorumReached(uint256 proposalId) internal view virtual returns (bool) {
-      // TBI 
-    }
-
-    /**
-     * @dev Is the proposal successful or not.
-     */
-    function _voteSucceeded(uint256 proposalId) internal view virtual returns (bool); 
-
-    /////////////////////////////////////////////////////////
-    // CONTINUE HERE -- going to LAW & ROLE MANAGER NOW..  // 
-    /////////////////////////////////////////////////////////
-
-    /**
      * @dev  
      */
     function propose(
+        address targetLaw,
+        address proposer, 
         address[] memory targets,
         bytes[] memory calldatas,
         string memory description
     ) public virtual returns (uint256) {
-        address proposer = _msgSender();
-
-        // check description restriction
-        if (!_isValidDescriptionForProposer(proposer, description)) {
-            revert GovernorRestrictedProposer(proposer);
-        }
-
-        // check proposal threshold
-        uint256 votesThreshold = proposalThreshold();
-        if (votesThreshold > 0) {
-            uint256 proposerVotes = getVotes(proposer, clock() - 1);
-            if (proposerVotes < votesThreshold) {
-                revert GovernorInsufficientProposerVotes(proposer, proposerVotes, votesThreshold);
-            }
-        }
-
-        return _propose(targets, calldatas, description, proposer);
+      if (proposer != msgSender()) {
+        revert SeparatedPowers__RestrictedProposer(); 
+      }
+      return _propose(targetLaw, proposer, targets, calldatas, description, proposer);
     }
 
     /**
@@ -183,81 +182,78 @@ contract SeparatedPowers is EIP712, RolesManager, LawsManager {
      * Emits a {IGovernor-ProposalCreated} event.
      */
     function _propose(
+        address targetLaw,
+        address proposer, 
         address[] memory targets,
         bytes[] memory calldatas,
-        string memory description,
-        address proposer
+        string memory description
     ) internal virtual returns (uint256 proposalId) {
-        proposalId = hashProposal(targets, calldatas, keccak256(bytes(description)));
-
-        if (targets.length != values.length || targets.length != calldatas.length || targets.length == 0) {
-            revert GovernorInvalidProposalLength(targets.length, calldatas.length, values.length);
+        // note that targetLaw AND proposer are hashed into the proposalId. By including proposer in the hash, front running can be avoided. 
+        proposalId = hashProposal(targetLaw, proposer, targets, calldatas, keccak256(bytes(description)));
+        uint64 accessRole = Law(targetLaw).accessRole(); 
+        if (roles[accessRole].members[proposer].since == 0) {
+            revert SeparatedPowers__AccessDenied(targets.length, calldatas.length, values.length);
+        } 
+        if (targets.length != calldatas.length || targets.length == 0) {
+            revert SeparatedPowers__InvalidProposalLength(targets.length, calldatas.length, values.length);
         }
         if (_proposals[proposalId].voteStart != 0) {
-            revert GovernorUnexpectedProposalState(proposalId, state(proposalId), bytes32(0));
+            revert SeparatedPowers__UnexpectedProposalState(proposalId, state(proposalId), bytes32(0));
         }
 
-        uint256 snapshot = clock() + votingDelay();
-        uint256 duration = votingPeriod();
-
+        uint8 duration = Law(targetLaw).votingPeriod(); 
         ProposalCore storage proposal = _proposals[proposalId];
         proposal.proposer = proposer;
-        proposal.voteStart = SafeCast.toUint48(snapshot);
-        proposal.voteDuration = SafeCast.toUint32(duration);
+        proposal.voteStart = block.number; // at the moment proposal is made, voting start. 
+        proposal.voteDuration = duration;
 
         emit ProposalCreated(
             proposalId,
             proposer,
             targets,
-            values,
             new string[](targets.length),
             calldatas,
-            snapshot,
-            snapshot + duration,
+            block.number,
+            block.number + duration,
             description
         );
 
         // Using a named return variable to avoid stack too deep errors
     }
 
-    **
-     * @dev See {IGovernor-execute}.
+    /**
+     * @dev
      */
     function execute(
+        address proposer, 
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) public payable virtual returns (uint256) {
-        uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
+      proposalId = hashProposal(msg.sender, proposer, targets, calldatas, descriptionHash);
 
-        _validateStateBitmap(
-            proposalId,
-            _encodeStateBitmap(ProposalState.Succeeded) | _encodeStateBitmap(ProposalState.Queued)
-        );
+      if (_proposals[proposalId].proposer == address(0)) {
+        SeparatedPowers__InvalidProposalId(); 
+      }
+      if (_proposals[proposalId].executed == true) {
+        SeparatedPowers__ProposalAlreadyExecuted(); 
+      }
+      if (_proposals[proposalId].cancelled == true) {
+        SeparatedPowers__ProposalCancelled(); 
+      }
+      if (!activeLaws[msg.sender]) {
+        SeparatedPowers__ExecuteCallNotFromActiveLaw(); 
+      }
 
-        // mark as executed before calls to avoid reentrancy
-        _proposals[proposalId].executed = true;
+      // mark as executed before calls to avoid reentrancy
+      _proposals[proposalId].executed = true;
 
-        // before execute: register governance call in queue.
-        if (_executor() != address(this)) {
-            for (uint256 i = 0; i < targets.length; ++i) {
-                if (targets[i] == address(this)) {
-                    _governanceCall.pushBack(keccak256(calldatas[i]));
-                }
-            }
-        }
+      _executeOperations(proposalId, targets, values, calldatas, descriptionHash);
 
-        _executeOperations(proposalId, targets, values, calldatas, descriptionHash);
+      emit ProposalExecuted(proposalId);
 
-        // after execute: cleanup governance call queue.
-        if (_executor() != address(this) && !_governanceCall.empty()) {
-            _governanceCall.clear();
-        }
-
-        emit ProposalExecuted(proposalId);
-
-        return proposalId;
+      return proposalId;
     }
 
     /**
@@ -284,6 +280,8 @@ contract SeparatedPowers is EIP712, RolesManager, LawsManager {
      * @dev See {IGovernor-cancel}.
      */
     function cancel(
+        address targetLaw, 
+        address proposer, 
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
@@ -292,15 +290,13 @@ contract SeparatedPowers is EIP712, RolesManager, LawsManager {
         // The proposalId will be recomputed in the `_cancel` call further down. However we need the value before we
         // do the internal call, because we need to check the proposal state BEFORE the internal `_cancel` call
         // changes it. The `hashProposal` duplication has a cost that is limited, and that we accept.
-        uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
+        uint256 proposalId = hashProposal(targetLaw, proposer, targets, calldatas, descriptionHash);
 
-        // public cancel restrictions (on top of existing _cancel restrictions).
-        _validateStateBitmap(proposalId, _encodeStateBitmap(ProposalState.Pending));
         if (_msgSender() !=  _proposals[proposalId].proposer) {
-            revert GovernorOnlyProposer(_msgSender());
+            revert SeparatedPowers_OnlyProposer(_msgSender());
         }
 
-        return _cancel(targets, values, calldatas, descriptionHash);
+        return _cancel(targetLaw, proposer, targets, values, calldatas, descriptionHash);
     }
 
     /**
@@ -310,20 +306,14 @@ contract SeparatedPowers is EIP712, RolesManager, LawsManager {
      * Emits a {IGovernor-ProposalCanceled} event.
      */
     function _cancel(
+        address targetLaw, 
+        address proposer, 
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) internal virtual returns (uint256) {
-        uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
-
-        _validateStateBitmap(
-            proposalId,
-            ALL_PROPOSAL_STATES_BITMAP ^
-                _encodeStateBitmap(ProposalState.Canceled) ^
-                _encodeStateBitmap(ProposalState.Expired) ^
-                _encodeStateBitmap(ProposalState.Executed)
-        );
+        uint256 proposalId = hashProposal(targetLaw, proposer, targets, calldatas, descriptionHash);
 
         _proposals[proposalId].canceled = true;
         emit ProposalCanceled(proposalId);
@@ -363,35 +353,15 @@ contract SeparatedPowers is EIP712, RolesManager, LawsManager {
         uint8 support,
         string memory reason
     ) internal virtual returns (uint256) {
-        return _castVote(proposalId, account, support, reason, _defaultParams());
+      if (state(proposalId) != ProposalState.Active) {
+        revert SeparatedPowers__ProposalNotActive(); 
+      } 
+
+      _countVote(proposalId, account, support);  
+      
+      emit VoteCast(account, proposalId, support, reason);
     }
 
-    /**
-     * @dev Internal vote casting mechanism: Check that the vote is pending, that it has not been cast yet, retrieve
-     * voting weight using {IGovernor-getVotes} and call the {_countVote} internal function.
-     *
-     * Emits a {IGovernor-VoteCast} event.
-     */
-    function _castVote(
-        uint256 proposalId,
-        address account,
-        uint8 support,
-        string memory reason,
-        bytes memory params
-    ) internal virtual returns (uint256) {
-        _validateStateBitmap(proposalId, _encodeStateBitmap(ProposalState.Active));
-
-        uint256 weight = _getVotes(account, proposalSnapshot(proposalId), params);
-        _countVote(proposalId, account, support, weight, params);
-
-        if (params.length == 0) {
-            emit VoteCast(account, proposalId, support, weight, reason);
-        } else {
-            emit VoteCastWithParams(account, proposalId, support, weight, reason, params);
-        }
-
-        return weight;
-    }
 
  /**
      * @dev See {IERC721Receiver-onERC721Received}.
@@ -431,40 +401,6 @@ contract SeparatedPowers is EIP712, RolesManager, LawsManager {
         }
         return this.onERC1155BatchReceived.selector;
     }
-
- /**
-     * @dev Encodes a `ProposalState` into a `bytes32` representation where each bit enabled corresponds to
-     * the underlying position in the `ProposalState` enum. For example:
-     *
-     * 0x000...10000
-     *   ^^^^^^------ ...
-     *         ^----- Succeeded
-     *          ^---- Defeated
-     *           ^--- Canceled
-     *            ^-- Active
-     *             ^- Pending
-     */
-    function _encodeStateBitmap(ProposalState proposalState) internal pure returns (bytes32) {
-        return bytes32(1 << uint8(proposalState));
-    }
-
-    /**
-     * @dev Check that the current state of a proposal matches the requirements described by the `allowedStates` bitmap.
-     * This bitmap should be built using `_encodeStateBitmap`.
-     *
-     * If requirements are not met, reverts with a {GovernorUnexpectedProposalState} error.
-     */
-    function _validateStateBitmap(uint256 proposalId, bytes32 allowedStates) private view returns (ProposalState) {
-        ProposalState currentState = state(proposalId);
-        if (_encodeStateBitmap(currentState) & allowedStates == bytes32(0)) {
-            revert GovernorUnexpectedProposalState(proposalId, currentState, allowedStates);
-        }
-        return currentState;
-    }
-
-
-
-
 }
 
 
