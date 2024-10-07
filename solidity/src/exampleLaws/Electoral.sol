@@ -17,11 +17,11 @@ contract Electoral is Law, IElectoral {
    * this allows for direct execution of governance actions, skipping a vote.  
    */
   function elect external (
-    address separatedPowers, 
-    address[] memory users,
-    bytes[] memory roleIds,
-    bytes32 descriptionHash 
+    bytes memory callData
     ) public checkAuthorized(separatedPowers) { 
+
+    // (address[] users, uint64[] roleIds, bytes32 descriptionHash) =
+    //         abi.decode(callData, (address[], uint64[], bytes32));
 
     revert ElectoralLaw__CallNotImplemented(); 
   } 
@@ -31,12 +31,12 @@ contract Electoral is Law, IElectoral {
    * this allows for checking if linked proposalId (and related content) has been subject to a vote. 
    */
   function elect external (
-    address separatedPowers, 
-    address[] memory users,
-    bytes[] memory roleIds,
-    bytes32 descriptionHash 
+    bytes memory callData,
     uint256 proposalId
     ) public checkAuthorized(separatedPowers) { 
+
+    // (address[] users, uint64[] roleIds, bytes32 descriptionHash) =
+    //         abi.decode(callData, (address[], uint64[], bytes32));
 
     revert ElectoralLaw__CallNotImplemented();   
   } 
