@@ -11,7 +11,7 @@ pragma solidity 0.8.26;
  * for now, this is just super simple. More complexity will be added later. 
  *  
  */
-abstract contract LawsManager {
+contract LawsManager {
   error LawsManager_NotAuthorized(); 
   
   /* Type declarations */
@@ -39,10 +39,8 @@ abstract contract LawsManager {
   } 
 
   /* internal */
-  function _setLaw(address law, bool active) internal virtual { 
-    bool lawChanged; 
+  function _setLaw(address law, bool active) internal virtual returns (bool lawChanged) { 
     lawChanged = activeLaws[law] == active; 
-
     if (lawChanged) activeLaws[law] = active; 
 
     emit LawSet(law, active, lawChanged);

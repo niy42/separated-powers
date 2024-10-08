@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {RolesManager} from "./RolesManager.sol";
+import {Law} from "./Law.sol";
 import {LawsManager} from "./LawsManager.sol";
-import {VotesManager} from "./VotesManager.sol";
-import {Law} from "./Law.sol"; 
+import {AuthorityManager} from "./AuthorityManager.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Address} from "../lib/openzeppelin-contracts/contracts/utils/Address.sol";
 import {EIP712} from "../lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
@@ -23,16 +22,18 @@ import {EIP712} from "../lib/openzeppelin-contracts/contracts/utils/cryptography
  * Original contract is abstract, with extensions being plugged in. All this NOT here. Any additional functionality is brought in through external law contracts. 
  * 
  */
-contract SeparatedPowers is EIP712, LawsManager, VotesManager {
+contract SeparatedPowers is EIP712, AuthorityManager, LawsManager {
     /* errors */
     error SeparatedPowers__RestrictedProposer(); 
     error SeparatedPowers__AccessDenied(); 
     error SeparatedPowers__UnexpectedProposalState(); 
     error SeparatedPowers__InvalidProposalId(); 
+    error SeperatedPowers__NonexistentProposal(uint256 proposalId); 
+    error SeparatedPowers__InvalidProposalLength(uint256 targetsLength, uint256 calldatasLength); 
     error SeparatedPowers__ProposalAlreadyExecuted(); 
     error SeparatedPowers__ProposalCancelled(); 
     error SeparatedPowers__ExecuteCallNotFromActiveLaw(); 
-    error SeparatedPowers_OnlyProposer(address caller); 
+    error SeparatedPowers__OnlyProposer(address caller); 
     error SeparatedPowers__ProposalNotActive(); 
 
     /* Type declarations */
@@ -66,6 +67,19 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
 
     /* Events */
     event ProposalExecuted(uint256 indexed proposalId); 
+    event ProposalCancelled(uint256 indexed proposalId);
+    event VoteCast(address indexed account, uint256 indexed proposalId, uint8 indexed support, string reason);
+    event FundsReceived(uint256 value);  
+       event ProposalCreated(
+        uint256 proposalId,
+        address proposer,
+        address[] targets,
+        string[] signatures,
+        bytes[] calldatas,
+        uint256 voteStart,
+        uint256 voteEnd,
+        string description
+    );
 
     /* FUNCTIONS */
     /**
@@ -81,7 +95,7 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
      * No access control on this function: anyone can send funds into the main contract.    
      */
     receive() external payable virtual {
-      emit SeparatedPowers__FundReceived(msg.value);  
+      emit FundsReceived(msg.value);  
     }
 
     /**
@@ -125,13 +139,13 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
         // We read the struct fields into the stack at once so Solidity emits a single SLOAD
         ProposalCore storage proposal = _proposals[proposalId];
         bool proposalExecuted = proposal.executed;
-        bool proposalCanceled = proposal.canceled;
+        bool proposalCancelled = proposal.cancelled;
 
         if (proposalExecuted) {
             return ProposalState.Executed;
         }
-        if (proposalCanceled) {
-            return ProposalState.Canceled;
+        if (proposalCancelled) {
+            return ProposalState.Cancelled;
         }
 
         uint256 start = _proposals[proposalId].voteStart; // = startDate
@@ -139,15 +153,13 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
         if (start == 0) {
             revert SeperatedPowers__NonexistentProposal(proposalId);
         }
-        if (start >= block.number) {
-            return ProposalState.Pending;
-        }
 
         uint256 deadline = proposalDeadline(proposalId);
+        address targetLaw = proposal.targetLaw; 
 
         if (deadline >= block.number) {
             return ProposalState.Active;
-        } else if (!_quorumReached(proposalId) || !_voteSucceeded(proposalId)) {
+        } else if (!_quorumReached(proposalId, targetLaw) || !_voteSucceeded(proposalId, targetLaw)) {
             return ProposalState.Defeated;
         } else {
             return ProposalState.Succeeded;
@@ -171,10 +183,10 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
         bytes[] memory calldatas,
         string memory description
     ) public virtual returns (uint256) {
-      if (proposer != msgSender()) {
+      if (proposer != msg.sender) {
         revert SeparatedPowers__RestrictedProposer(); 
       }
-      return _propose(targetLaw, proposer, targets, calldatas, description, proposer);
+      return _propose(targetLaw, proposer, targets, calldatas, description);
     }
 
     /**
@@ -192,20 +204,20 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
         // note that targetLaw AND proposer are hashed into the proposalId. By including proposer in the hash, front running can be avoided. 
         proposalId = hashProposal(targetLaw, proposer, targets, calldatas, keccak256(bytes(description)));
         uint64 accessRole = Law(targetLaw).accessRole(); 
-        if (roles[accessRole].members[proposer].since == 0) {
-            revert SeparatedPowers__AccessDenied(targets.length, calldatas.length, values.length);
+        if (roles[accessRole].members[proposer] == 0) {
+            revert SeparatedPowers__AccessDenied();
         } 
         if (targets.length != calldatas.length || targets.length == 0) {
-            revert SeparatedPowers__InvalidProposalLength(targets.length, calldatas.length, values.length);
+            revert SeparatedPowers__InvalidProposalLength(targets.length, calldatas.length);
         }
         if (_proposals[proposalId].voteStart != 0) {
-            revert SeparatedPowers__UnexpectedProposalState(proposalId, state(proposalId), bytes32(0));
+            revert SeparatedPowers__UnexpectedProposalState();
         }
 
-        uint8 duration = Law(targetLaw).votingPeriod(); 
+        uint32 duration = Law(targetLaw).votingPeriod(); 
         ProposalCore storage proposal = _proposals[proposalId];
         proposal.proposer = proposer;
-        proposal.voteStart = block.number; // at the moment proposal is made, voting start. 
+        proposal.voteStart = uint48(block.number); // at the moment proposal is made, voting start. 
         proposal.voteDuration = duration;
 
         emit ProposalCreated(
@@ -232,19 +244,19 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) public payable virtual returns (uint256) {
-      proposalId = hashProposal(msg.sender, proposer, targets, calldatas, descriptionHash);
+      uint256 proposalId = hashProposal(msg.sender, proposer, targets, calldatas, descriptionHash);
 
       if (_proposals[proposalId].proposer == address(0)) {
-        SeparatedPowers__InvalidProposalId(); 
+        revert SeparatedPowers__InvalidProposalId(); 
       }
       if (_proposals[proposalId].executed == true) {
-        SeparatedPowers__ProposalAlreadyExecuted(); 
+        revert SeparatedPowers__ProposalAlreadyExecuted(); 
       }
       if (_proposals[proposalId].cancelled == true) {
-        SeparatedPowers__ProposalCancelled(); 
+        revert SeparatedPowers__ProposalCancelled(); 
       }
       if (!activeLaws[msg.sender]) {
-        SeparatedPowers__ExecuteCallNotFromActiveLaw(); 
+        revert SeparatedPowers__ExecuteCallNotFromActiveLaw(); 
       }
 
       // mark as executed before calls to avoid reentrancy
@@ -284,7 +296,6 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
         address targetLaw, 
         address proposer, 
         address[] memory targets,
-        uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) public virtual returns (uint256) {
@@ -293,40 +304,39 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
         // changes it. The `hashProposal` duplication has a cost that is limited, and that we accept.
         uint256 proposalId = hashProposal(targetLaw, proposer, targets, calldatas, descriptionHash);
 
-        if (_msgSender() !=  _proposals[proposalId].proposer) {
-            revert SeparatedPowers_OnlyProposer(_msgSender());
+        if (msg.sender !=  _proposals[proposalId].proposer) {
+            revert SeparatedPowers__OnlyProposer(msg.sender);
         }
 
-        return _cancel(targetLaw, proposer, targets, values, calldatas, descriptionHash);
+        return _cancel(targetLaw, proposer, targets, calldatas, descriptionHash);
     }
 
     /**
      * @dev Internal cancel mechanism with minimal restrictions. A proposal can be cancelled in any state other than
-     * Canceled, Expired, or Executed. Once cancelled a proposal can't be re-submitted.
+     * Cancelled, Expired, or Executed. Once cancelled a proposal can't be re-submitted.
      *
-     * Emits a {IGovernor-ProposalCanceled} event.
+     * Emits a {IGovernor-ProposalCancelled} event.
      */
     function _cancel(
         address targetLaw, 
         address proposer, 
         address[] memory targets,
-        uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) internal virtual returns (uint256) {
         uint256 proposalId = hashProposal(targetLaw, proposer, targets, calldatas, descriptionHash);
 
-        _proposals[proposalId].canceled = true;
-        emit ProposalCanceled(proposalId);
+        _proposals[proposalId].cancelled = true;
+        emit ProposalCancelled(proposalId);
 
         return proposalId;
     }
 
-     /**
+        /**
      * @dev See {IGovernor-castVote}.
      */
     function castVote(uint256 proposalId, uint8 support) public virtual returns (uint256) {
-        address voter = _msgSender();
+        address voter = msg.sender;
         return _castVote(proposalId, voter, support, "");
     }
 
@@ -338,7 +348,7 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
         uint8 support,
         string calldata reason
     ) public virtual returns (uint256) {
-        address voter = _msgSender();
+        address voter = msg.sender;
         return _castVote(proposalId, voter, support, reason);
     }
 
@@ -354,7 +364,7 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
         uint8 support,
         string memory reason
     ) internal virtual returns (uint256) {
-      if (state(proposalId) != ProposalState.Active) {
+      if (SeparatedPowers(payable(address(this))).state(proposalId) != ProposalState.Active) {
         revert SeparatedPowers__ProposalNotActive(); 
       } 
 
@@ -364,31 +374,22 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
     }
 
 
- /**
+     /**
      * @dev See {IERC721Receiver-onERC721Received}.
-     * Receiving tokens is disabled if the governance executor is other than the governor itself (eg. when using with a timelock).
      */
     function onERC721Received(address, address, uint256, bytes memory) public virtual returns (bytes4) {
-        if (_executor() != address(this)) {
-            revert GovernorDisabledDeposit();
-        }
         return this.onERC721Received.selector;
     }
 
     /**
      * @dev See {IERC1155Receiver-onERC1155Received}.
-     * Receiving tokens is disabled if the governance executor is other than the governor itself (eg. when using with a timelock).
      */
     function onERC1155Received(address, address, uint256, uint256, bytes memory) public virtual returns (bytes4) {
-        if (_executor() != address(this)) {
-            revert GovernorDisabledDeposit();
-        }
         return this.onERC1155Received.selector;
     }
 
     /**
      * @dev See {IERC1155Receiver-onERC1155BatchReceived}.
-     * Receiving tokens is disabled if the governance executor is other than the governor itself (eg. when using with a timelock).
      */
     function onERC1155BatchReceived(
         address,
@@ -397,9 +398,6 @@ contract SeparatedPowers is EIP712, LawsManager, VotesManager {
         uint256[] memory,
         bytes memory
     ) public virtual returns (bytes4) {
-        if (_executor() != address(this)) {
-            revert GovernorDisabledDeposit();
-        }
         return this.onERC1155BatchReceived.selector;
     }
 }

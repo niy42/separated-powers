@@ -8,7 +8,7 @@ pragma solidity 0.8.26;
  * @dev TBI: contract Executive Law. 
  *  
  */
-contract Electoral is Law, IElectoral {
+contract Electoral {
 
   // error ElectoralLaw__CallNotImplemented(); 
 

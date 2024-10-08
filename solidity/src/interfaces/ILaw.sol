@@ -10,6 +10,5 @@ interface ILaw {
 
   function executeLaw (bytes memory callData) external; 
   function executeLaw (bytes memory callData, uint256 proposalId) external;
-  function canCall (address caller) public;
 
 }

@@ -8,7 +8,7 @@ pragma solidity 0.8.26;
  * @dev TBI: contract Executive Law. 
  *  
  */
-contract Administrative is Law, IAdministrative {
+contract Administrative {
 
   // error AdministrativeLaw__CallNotImplemented(); 
 
