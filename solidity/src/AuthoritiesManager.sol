@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Law} from "./Law.sol";
+import {IAuthoritiesManager} from "./interfaces/IAuthoritiesManager.sol"; 
 // import {SeparatedPowers} from "./SeparatedPowers.sol" ; 
 
 /**
@@ -10,36 +11,7 @@ import {Law} from "./Law.sol";
  * Note: Derived from GovernorCountingSimple. 
  *
  */
-contract AuthorityManager {
-    /* errors */ 
-    error AuthorityManager_NotAuthorized(address invalidAddress);
-    error AuthorityManager_InvalidInitialAdmin(address invalidAddress);
-    error AuthorityManager_LockedRole(uint64 roleId);
-    error AuthorityManager_AlreadyCastVote(address account);
-    error AuthorityManager_InvalidVoteType(); 
-    
-    /**
-     * @dev Supported vote types. Matches Governor Bravo ordering.
-     */
-    enum VoteType {
-        Against,
-        For,
-        Abstain
-    }
-
-    struct ProposalVote {
-        uint256 againstVotes;
-        uint256 forVotes;
-        uint256 abstainVotes;
-        mapping(address voter => bool) hasVoted;
-    }
-    
-    struct Role {
-        // Members of the role.
-        mapping(address user => uint48 since) members;
-        uint256 amountMembers; 
-    }
-
+contract AuthoritiesManager is IAuthoritiesManager { 
     mapping(uint256 proposalId => ProposalVote) private _proposalVotes;
     mapping(uint64 roleId => Role) public roles;   
     
@@ -47,14 +19,7 @@ contract AuthorityManager {
     uint64 public constant PUBLIC_ROLE = type(uint64).max; // 2**64-1
     uint256 constant DECIMALS = 100;
     
-    /* Events */
-    event RoleSet(uint64 indexed roleId, address indexed account, bool indexed accessChanged); 
-
     /* FUNCTIONS */ 
-
-    //////////////////////////
-    //         Roles       //
-    /////////////////////////
     function setRole(uint64 roleId, address account, bool access) public virtual {
       // this function can only be called from the execute function  of SeperatedPowers with a .call call. 
       // As such, there is a msg.sender, but it always has to come form address (this).  
@@ -95,9 +60,6 @@ contract AuthorityManager {
         return accessChanged;
     }
 
-    //////////////////////////
-    //         Voting       //
-    ///////////////////////// 
     /**
      * @dev }.
      */
@@ -172,16 +134,12 @@ contract AuthorityManager {
         }
     }
 
-
-
     /* internal & private view & pure functions */
-    function _canCall(address caller, address targetLaw) internal virtual {
+    function _canCall(address caller, address targetLaw) internal virtual returns (bool) {
         uint64 accessRole = Law(targetLaw).accessRole(); 
         uint48 since =  hasRoleSince(caller, accessRole); 
         
-        if (since == 0) {
-        revert AuthorityManager_NotAuthorized(msg.sender);  
-        }
+        return since != 0; 
     }
     
     /* getters */
@@ -189,13 +147,9 @@ contract AuthorityManager {
       return roles[roleId].members[user]; 
     }
 
-    function canCall(address caller, address targetLaw) external virtual {
+    function canCall(address caller, address targetLaw) external returns (bool)  {
         _canCall(caller, targetLaw); 
     }
-
-
-
-
 } 
 
 // Notes to self:

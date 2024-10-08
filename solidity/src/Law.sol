@@ -49,11 +49,11 @@ contract Law is IERC165, ERC165, EIP712 {
       votingPeriod = votingPeriod_;
   }
 
-  function executeLaw(bytes memory callData) external {
+  function executeLaw(bytes memory callData) external virtual {
     revert Law__CallNotImplemented(); 
   }
 
-  function executeLaw(bytes memory callData, uint256 proposalId) external {
+  function executeLaw(bytes memory callData, uint256 proposalId) external virtual {
     revert Law__CallNotImplemented(); 
 
     // need to have a function in SeparatedPowers to set proposals to executed. 

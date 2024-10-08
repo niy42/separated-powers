@@ -3,7 +3,8 @@ pragma solidity 0.8.26;
 
 import {Law} from "./Law.sol";
 import {LawsManager} from "./LawsManager.sol";
-import {AuthorityManager} from "./AuthorityManager.sol";
+import {AuthoritiesManager} from "./AuthoritiesManager.sol";
+import {ISeparatedPowers} from "./interfaces/ISeparatedPowers.sol"; 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Address} from "../lib/openzeppelin-contracts/contracts/utils/Address.sol";
 import {EIP712} from "../lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
@@ -22,21 +23,7 @@ import {EIP712} from "../lib/openzeppelin-contracts/contracts/utils/cryptography
  * Original contract is abstract, with extensions being plugged in. All this NOT here. Any additional functionality is brought in through external law contracts. 
  * 
  */
-contract SeparatedPowers is EIP712, AuthorityManager, LawsManager {
-    /* errors */
-    error SeparatedPowers__RestrictedProposer(); 
-    error SeparatedPowers__AccessDenied(); 
-    error SeparatedPowers__UnexpectedProposalState(); 
-    error SeparatedPowers__InvalidProposalId(); 
-    error SeperatedPowers__NonexistentProposal(uint256 proposalId); 
-    error SeparatedPowers__InvalidProposalLength(uint256 targetsLength, uint256 calldatasLength); 
-    error SeparatedPowers__ProposalAlreadyExecuted(); 
-    error SeparatedPowers__ProposalCancelled(); 
-    error SeparatedPowers__ExecuteCallNotFromActiveLaw(); 
-    error SeparatedPowers__OnlyProposer(address caller); 
-    error SeparatedPowers__ProposalNotActive(); 
-
-    /* Type declarations */
+contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedPowers {
     bytes32 public constant BALLOT_TYPEHASH =
         keccak256("Ballot(uint256 proposalId,uint8 support,address voter,uint256 nonce)");
     bytes32 public constant EXTENDED_BALLOT_TYPEHASH =
@@ -44,48 +31,14 @@ contract SeparatedPowers is EIP712, AuthorityManager, LawsManager {
             "ExtendedBallot(uint256 proposalId,uint8 support,address voter,uint256 nonce,string reason,bytes params)"
         );
 
-    enum ProposalState {
-        Active,
-        Cancelled,
-        Defeated,
-        Succeeded,
-        Executed
-    }
-
-    struct ProposalCore {
-        address proposer;
-        address targetLaw; 
-        uint48 voteStart;
-        uint32 voteDuration;
-        bool executed;
-        bool cancelled;
-    }
-
-    /* State variables */
     mapping(uint256 proposalId => ProposalCore) private _proposals;
     string private _name;
-
-    /* Events */
-    event ProposalExecuted(uint256 indexed proposalId); 
-    event ProposalCancelled(uint256 indexed proposalId);
-    event VoteCast(address indexed account, uint256 indexed proposalId, uint8 indexed support, string reason);
-    event FundsReceived(uint256 value);  
-       event ProposalCreated(
-        uint256 proposalId,
-        address proposer,
-        address[] targets,
-        string[] signatures,
-        bytes[] calldatas,
-        uint256 voteStart,
-        uint256 voteEnd,
-        string description
-    );
 
     /* FUNCTIONS */
     /**
      * @dev Sets the value for {name} and {version}
      */
-    constructor(string memory name_) EIP712(name_, version()) { // NOTE Uses OpenZeppelin contract for management of EIP712. -- Where is this version called from? -- later on in the contract. 
+    constructor(string memory name_) EIP712(name_, version()) { 
         _name = name_;
     }
 
@@ -332,7 +285,7 @@ contract SeparatedPowers is EIP712, AuthorityManager, LawsManager {
         return proposalId;
     }
 
-        /**
+    /**
      * @dev See {IGovernor-castVote}.
      */
     function castVote(uint256 proposalId, uint8 support) public virtual returns (uint256) {
@@ -402,25 +355,3 @@ contract SeparatedPowers is EIP712, AuthorityManager, LawsManager {
     }
 }
 
-
-// Notes to self: 
-// Structure contract //
-/* version */
-/* imports */
-/* errors */
-/* interfaces, libraries, contracts */
-/* Type declarations */
-/* State variables */
-/* Events */
-/* Modifiers */
-
-/* FUNCTIONS: */
-/* constructor */
-/* receive function (if exists) */
-/* fallback function (if exists) */
-/* external */
-/* public */
-/* internal */
-/* private */
-/* internal & private view & pure functions */
-/* external & public view & pure functions */
