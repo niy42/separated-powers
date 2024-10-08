@@ -8,7 +8,8 @@ pragma solidity 0.8.26;
  */
 interface ILaw {
 
-  function executeLaw external (bytes memory callData); 
-  function executeLaw external (bytes memory callData, uint256 proposalId);
+  function executeLaw (bytes memory callData) external; 
+  function executeLaw (bytes memory callData, uint256 proposalId) external;
+  function canCall (address caller) public;
 
 }

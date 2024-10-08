@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Law} from "./Law.sol"
-import {IExecutive} from "./IExecutive.sol"
-import {SeparatedPowers} from "../SeparatedPowers.sol"
+// import {Law} from "./Law.sol"
+// import {IExecutive} from "./IExecutive.sol"
+// import {SeparatedPowers} from "../SeparatedPowers.sol"
 
 /**
  * @dev TBI: contract Executive Law. 
@@ -11,7 +11,7 @@ import {SeparatedPowers} from "../SeparatedPowers.sol"
  */
 contract Executive is Law, IExecutive {
 
-  error ExecutiveLaw__CallNotImplemented(); 
+  // error ExecutiveLaw__CallNotImplemented(); 
 
   /**
    * execute function without proposalId. 
@@ -31,30 +31,30 @@ contract Executive is Law, IExecutive {
     )
     
     */ 
-  function execute external (
-    bytes memory callData
-    ) public checkAuthorized(separatedPowers) { 
+  // function execute external (
+  //   bytes memory callData
+  //   ) public checkAuthorized(separatedPowers) { 
 
-    // (address[] targets, uint256[] values, bytes[] memory calldatas, bytes32 descriptionHash) =
-    //         abi.decode(callData, (address[], uint256[], bytes[], bytes32));
+  //   // (address[] targets, uint256[] values, bytes[] memory calldatas, bytes32 descriptionHash) =
+  //   //         abi.decode(callData, (address[], uint256[], bytes[], bytes32));
 
-    revert ExecutiveLaw__CallNotImplemented(); 
-  } 
+  //   revert ExecutiveLaw__CallNotImplemented(); 
+  // } 
 
-  /**
-   * execute function with proposalId. 
-   * this allows for checking if linked proposalId (and related content) has been subject to a vote. 
-   */
-  function execute external (
-    bytes memory callData
-    uint256 proposalId
-    ) public checkAuthorized(separatedPowers) { 
+  // /**
+  //  * execute function with proposalId. 
+  //  * this allows for checking if linked proposalId (and related content) has been subject to a vote. 
+  //  */
+  // function execute external (
+  //   bytes memory callData
+  //   uint256 proposalId
+  //   ) public checkAuthorized(separatedPowers) { 
 
-    // (address[] targets, uint256[] values, bytes[] memory calldatas, bytes32 descriptionHash) =
-    //      abi.decode(callData, (address[], uint256[], bytes[], bytes32));
+  //   // (address[] targets, uint256[] values, bytes[] memory calldatas, bytes32 descriptionHash) =
+  //   //      abi.decode(callData, (address[], uint256[], bytes[], bytes32));
 
-    revert ExecutiveLaw__CallNotImplemented();   
-  } 
+  //   revert ExecutiveLaw__CallNotImplemented();   
+  // } 
   
   
 

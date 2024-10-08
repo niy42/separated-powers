@@ -4,9 +4,10 @@ pragma solidity 0.8.26;
 import {RolesManager} from "./RolesManager.sol";
 import {LawsManager} from "./LawsManager.sol";
 import {VotesManager} from "./VotesManager.sol";
-import {Law} from "./Law.sol"
-import {Address} from "../utils/Address.sol";
-import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import {Law} from "./Law.sol"; 
+import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {Address} from "../lib/openzeppelin-contracts/contracts/utils/Address.sol";
+import {EIP712} from "../lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
 
 /**
  * @dev TBI: Description contract. 
@@ -22,7 +23,7 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
  * Original contract is abstract, with extensions being plugged in. All this NOT here. Any additional functionality is brought in through external law contracts. 
  * 
  */
-contract SeparatedPowers is EIP712, RolesManager, LawsManager, VotesManager {
+contract SeparatedPowers is EIP712, LawsManager, VotesManager {
     /* errors */
     error SeparatedPowers__RestrictedProposer(); 
     error SeparatedPowers__AccessDenied(); 

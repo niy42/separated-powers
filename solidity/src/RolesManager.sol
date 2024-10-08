@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {Law} from "./Law.sol";
 
 /**
  * @dev TBI: Description contract.
@@ -17,10 +17,11 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
  * Everything todo with delay, schedule was excluded.
  *
  */
-contract RolesManager is Context {
+abstract contract RolesManager {
     // errors //
+    error RolesManager_NotAuthorized(address invalidAddress);
     error RolesManager_InvalidInitialAdmin(address invalidAddress);
-    error RolesManager_LockedRole(uint64 roleId)
+    error RolesManager_LockedRole(uint64 roleId);
 
     // Structure that stores the details of a role.
     struct Role {
@@ -37,54 +38,15 @@ contract RolesManager is Context {
     /* Events */
     event RoleSet(uint64 indexed roleId, address indexed account, bool indexed accessChanged);
 
-
-    // modifiers // 
-    /**
-     * @dev Check that the caller is authorized to perform the operation.
-     * See {AccessManager} description for a detailed breakdown of the authorization logic.
-     * NB: I might want to use this in the main separated-powers contract. Keep. Do not take out. 
-     */
-    modifier onlyAuthorized() {
-        _checkAuthorized();
-        _;
-    }
-
-    // take out constructor? I think it is not necessary here. I can just inherit this contract and call _setRole in constructor of SeparatedPowers.  
-    constructor(address initialAdmin) {
-        if (initialAdmin == address(0)) {
-            revert RolesManager_InvalidInitialAdmin(address(0));
-        }
-
-        // admin is active immediately.
-        _setRole(ADMIN_ROLE, initialAdmin, 0, 0); // this
-    }
-
-    // getters //
-    /**
-    * £TODO: implement together with implementing laws. 
-    * Note: does NOT check if law is actually active in the governance contract. It purely checks if roleId can call a particular law contract. 
-    *
-    */ 
-    function canCall(
-        address caller,
-        address target
-    ) public view virtual returns (uint48 since) {
-        // £todo step 1: check for signatures: are they laws?
-        // if not, revert.   
-        if (isTargetLaw(target)) {
-            return (false, 0);
-        // step 2: check if RoleID of law is correct/ 
-        } else {
-            uint64 roleId = getTargetLawRole(target);
-            return hasRoleSince(roleId, caller);
-        }
-    }
-
-    /// @inheritdoc IAccessManager
-    function setRole(uint64 roleId, address account, bool access) public virtual onlyAuthorized {
+    /* FUNCTIONS */ 
+    function setRole(uint64 roleId, address account, bool access) public virtual {
+      // this function can only be called from the execute function  of SeperatedPowers with a .call call. 
+      // As such, there is a msg.sender, but it always has to come form address (this).  
+      if (msg.sender != address(this)) { 
+        revert RolesManager_NotAuthorized();  
+      }
         _setRole(roleId, account, access);
     }
-
 
     /**
      * @dev Internal version of {setRole} without access control. Returns true if the role was newly granted.
@@ -109,14 +71,13 @@ contract RolesManager is Context {
             accessChanged = true; 
         } else if (!access && !newMember)  {
           roles[roleId].members[account] = 0;
-          roles[roleId].amountMembers +-; // NB! CHECK IF THIS WORKS 
+          roles[roleId].amountMembers += -1; // NB! CHECK IF THIS WORKS 
           accessChanged = true;
         }
 
         emit RoleSet(roleId, account, accessChanged);
         return accessChanged;
     }
-
 }
 
 // Notes to self:

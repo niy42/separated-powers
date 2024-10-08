@@ -11,7 +11,9 @@ pragma solidity 0.8.26;
  * for now, this is just super simple. More complexity will be added later. 
  *  
  */
-contract LawsManager {
+abstract contract LawsManager {
+  error LawsManager_NotAuthorized(); 
+  
   /* Type declarations */
 
   /* State variables */
@@ -26,9 +28,14 @@ contract LawsManager {
   * NB! IF I check for correct type of law + if law is active -- the access control should be handled by the Law. NOT by governance contract. 
    */
   function setLaw(address law, bool active) public { 
+    // this function can only be called from the execute function  of SeperatedPowers with a .call call. 
+    // As such, there is a msg.sender, but it always has to come form address (this).  
+    if (msg.sender != address(this)) { 
+      revert LawsManager_NotAuthorized();  
+    }
     // CHECK: call from executive Law? 
     // CHECK: executive law active in address(this)?  
-    _setLaw(address law, bool active);
+    _setLaw(law, active);
   } 
 
   /* internal */

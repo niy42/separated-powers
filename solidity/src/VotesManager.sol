@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Context} from "@openzeppelin/contracts/utils/Context.sol";
-
+import {Context} from "../lib/openzeppelin-contracts/contracts/utils/Context.sol"; 
+import {RolesManager} from "./RolesManager" 
+import {Law} from "./Law.sol";
 
 /**
  * @dev TBI: Description contract.
@@ -10,9 +11,9 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
  * Note: Derived from GovernorCountingSimple. 
  *
  */
-abstract contract VotesManager is SeparatedPowers {
+abstract contract VotesManager is RolesManager {
     error VotesManager_AlreadyCastVote(address account);
-    error VotesManager_InvalidVoteType()
+    error VotesManager_InvalidVoteType(); 
     
     /**
      * @dev Supported vote types. Matches Governor Bravo ordering.
@@ -31,7 +32,7 @@ abstract contract VotesManager is SeparatedPowers {
     }
 
     mapping(uint256 proposalId => ProposalVote) private _proposalVotes;
-    constant public DECIMALS = 100;  
+    uint256 constant DECIMALS = 100;  
 
     /**
      * @dev
@@ -61,10 +62,9 @@ abstract contract VotesManager is SeparatedPowers {
     /**
      * @dev
      */
-    function _quorumReached(uint256 proposalId) internal view virtual override returns (bool) {
+    function _quorumReached(uint256 proposalId, address targetLaw) internal view virtual override returns (bool) {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
-        address targetLaw = _proposals[proposalId].targetLaw;
-      
+
         uint8 quorum = Law(targetLaw).quorum(); 
         uint64 accessRole = Law(targetLaw).accessRole(); 
         uint256 amountMembers = roles[accessRole].amountMembers;
@@ -75,9 +75,8 @@ abstract contract VotesManager is SeparatedPowers {
     /**
      * @dev 
      */
-    function _voteSucceeded(uint256 proposalId) internal view virtual override returns (bool) {
+    function _voteSucceeded(uint256 proposalId, address targetLaw) internal view virtual override returns (bool) {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
-        address targetLaw = _proposals[proposalId].targetLaw;
       
         uint8 succeedAt = Law(targetLaw).succeedAt(); 
         uint64 accessRole = Law(targetLaw).accessRole(); 

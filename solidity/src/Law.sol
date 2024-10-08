@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {ShortString} from "@openzeppelin/contracts/utils/ShortString.sol";
-import {SeparatedPowers} from "../SeparatedPowers.sol"
-import {EIP721} "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import "../lib/openzeppelin-contracts/contracts/utils/ShortStrings.sol";
+import {SeparatedPowers} from "./SeparatedPowers.sol"; 
+import {EIP712} from "../lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
+import {IERC165} from "lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @dev TBI: contract Law. 
@@ -25,8 +26,10 @@ contract Law {
   address public immutable separatedPowers; // address to related separatedPower contract. Laws cannot be shared between them. They have to be re-initialised through a constructor function.  
   string public description; 
 
-  modifier checkAuthorized() {
-     _checkAuthorized();
+  modifier onlyAuthorized() {
+     _canCall(msg.sender);
+
+     _; 
   }
 
   /**
@@ -50,24 +53,35 @@ contract Law {
       votingPeriod = votingPeriod_;
   }
 
-  function executeLaw(bytes memory callData) public checkAuthorized {
+  function executeLaw(bytes memory callData) public onlyAuthorized {
     revert Law__CallNotImplemented(); 
   }
 
-  function executeLaw(bytes memory callData, uint256 proposalId) public checkAuthorized {
+  function executeLaw(bytes memory callData, uint256 proposalId) public onlyAuthorized {
     revert Law__CallNotImplemented(); 
 
+    // need to have a function in SeparatedPowers to set proposals to executed. 
+    // a function that can only be called by the law that the proposal references. 
     // _proposals[proposalId].executed = true;
 
   }
 
-  function _checkAuthorized() internal virtual {
+  function canCall(address caller) internal virtual {
+    _canCall(caller); 
+  }
+
+  function _canCall(address caller) internal virtual {
     uint48 since = SeparatedPowers(separatedPowers).roles[accessRole].members[msg.sender]; 
     
     if (since == 0) {
       revert Law__AccessNotAuthorized(msg.sender);  
     }
   }
+
+  function supportsInterface(bytes4 interfaceId) public view override(ERC165, IERC165) returns (bool) {
+     return interfaceId == type(ILaw).interfaceId || super.supportsInterface(interfaceId);
+  }
+
 }
 
 
