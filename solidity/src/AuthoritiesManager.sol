@@ -5,7 +5,7 @@ import {Law} from "./Law.sol";
 import {IAuthoritiesManager} from "./interfaces/IAuthoritiesManager.sol"; 
 
 /**
- * @dev TBI: Description contract.
+ * @notice Interface for managing roles and vote access. Derived from OpenZeppelin's GovernorCountingSimple.sol. 
  *
  * Note: Derived from GovernorCountingSimple. 
  *
@@ -18,7 +18,9 @@ contract AuthoritiesManager is IAuthoritiesManager {
     uint64 public constant PUBLIC_ROLE = type(uint64).max; // 2**64-1
     uint256 constant DECIMALS = 100;
     
-    /* FUNCTIONS */ 
+    /**
+    * @dev see {IAuthoritiesManager.setRole}
+    */
     function setRole(uint64 roleId, address account, bool access) public virtual {
       // this function can only be called from the execute function  of SeperatedPowers with a .call call. 
       // As such, there is a msg.sender, but it always has to come form address (this).  
@@ -29,7 +31,7 @@ contract AuthoritiesManager is IAuthoritiesManager {
     }
 
     /**
-     * @dev Internal version of {setRole} without access control. Returns true if the role was newly granted.
+     * @notice Internal version of {setRole} without access control. Returns true if the role was newly granted.
      *
      * Emits a {RoleGranted} event.
      */
@@ -46,12 +48,12 @@ contract AuthoritiesManager is IAuthoritiesManager {
         bool accessChanged;  
 
         if (access && newMember) {
-            roles[roleId].members[account] = uint48(block.number); 
+            roles[roleId].members[account] = uint48(block.number); // 'since' is set at current block.number  
             roles[roleId].amountMembers++; 
             accessChanged = true; 
         } else if (!access && !newMember)  {
           roles[roleId].members[account] = 0;
-          roles[roleId].amountMembers--; // NB! CHECK IF THIS WORKS 
+          roles[roleId].amountMembers--; 
           accessChanged = true;
         }
 
@@ -60,14 +62,14 @@ contract AuthoritiesManager is IAuthoritiesManager {
     }
 
     /**
-     * @dev }.
+     * @dev see {IAuthoritiesManager.hasVoted}
      */
     function hasVoted(uint256 proposalId, address account) public view virtual returns (bool) {
         return _proposalVotes[proposalId].hasVoted[account];
     }
 
     /**
-     * @dev
+     * @dev see {IAuthoritiesManager.proposalVotes}
      */
     function proposalVotes(
         uint256 proposalId
@@ -77,7 +79,11 @@ contract AuthoritiesManager is IAuthoritiesManager {
     }
 
     /**
-     * @dev
+     * @notice internal function {quorumReached} that checks if the quorum for a given proposal has been reached.
+     *
+     * @param proposalId id of the proposal.
+     * @param targetLaw address of the law that the proposal belongs to. 
+     *
      */
     function _quorumReached(uint256 proposalId, address targetLaw) internal view virtual returns (bool) {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
@@ -87,12 +93,13 @@ contract AuthoritiesManager is IAuthoritiesManager {
         uint256 amountMembers = roles[accessRole].amountMembers;
 
         return (amountMembers * quorum) / DECIMALS <= proposalVote.forVotes + proposalVote.abstainVotes; 
-
-        // return true;
     }
 
     /**
-     * @dev 
+     * @dev internal function {voteSucceeded} that checks if a vote for a given proposal has succeeded.
+     *
+     * @param proposalId id of the proposal.
+     * @param targetLaw address of the law that the proposal belongs to.
      */
     function _voteSucceeded(uint256 proposalId, address targetLaw) internal view virtual returns (bool) {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
@@ -102,12 +109,13 @@ contract AuthoritiesManager is IAuthoritiesManager {
         uint256 amountMembers = roles[accessRole].amountMembers;
 
         return (amountMembers * succeedAt) / DECIMALS <= proposalVote.forVotes; 
-
-        // return true;
     }
 
     /**
+     * @notice internal function {countVote} that counts against, for, and abstain votes for a given proposal.
+     * 
      * @dev In this module, the support follows the `VoteType` enum (from Governor Bravo).
+     * @dev It does not check if account has roleId referenced in proposalId. This has to be done by {SeparatedPowers.castVote} function.  
      */
     function _countVote(
         uint256 proposalId,
@@ -115,7 +123,6 @@ contract AuthoritiesManager is IAuthoritiesManager {
         uint8 support
     ) internal virtual {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
-        // HERE NEED TO CHECK IF account has roleID! 
 
         if (proposalVote.hasVoted[account]) {
             revert AuthorityManager_AlreadyCastVote(account);
@@ -134,6 +141,12 @@ contract AuthoritiesManager is IAuthoritiesManager {
     }
 
     /* internal & private view & pure functions */
+    /**
+     * @notice internal function {canCallLaw} that checks if a caller can call a given law.
+     *
+     * @param caller address of the caller.
+     * @param targetLaw address of the law to check. 
+     */
     function _canCall(address caller, address targetLaw) internal virtual returns (bool) {
         uint64 accessRole = Law(targetLaw).accessRole(); 
         uint48 since =  hasRoleSince(caller, accessRole); 
@@ -141,11 +154,16 @@ contract AuthoritiesManager is IAuthoritiesManager {
         return since != 0; 
     }
     
-    /* getters */
+    /**
+     * @dev see {IAuthoritiesManager.hasRoleSince}
+     */
     function hasRoleSince(address account, uint64 roleId) public returns (uint48 since) {
       return roles[roleId].members[account]; 
     }
 
+    /**
+     * @dev see {IAuthoritiesManager.canCallLaw}
+     */
     function canCallLaw(address caller, address targetLaw) external returns (bool)  {
         _canCall(caller, targetLaw); 
     }

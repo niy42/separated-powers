@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 /**
- * @notice Interface for managing Roles and . Derived from OpenZeppelin's GovernorCountingSimple.sol. 
+ * @notice Interface for managing roles and vote access. Derived from OpenZeppelin's GovernorCountingSimple.sol. 
  * @dev See the [OpenZeppelinGovernorCountingSimple](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/governance/extensions/GovernorCountingSimple.sol)
  *
  * @author 7Cedars, Oct 2024 RnDAO CollabTech Hackathon 

@@ -10,70 +10,59 @@ import {Address} from "../lib/openzeppelin-contracts/contracts/utils/Address.sol
 import {EIP712} from "../lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
 
 /**
- * @dev TBI: Description contract. 
- *
- * Note: Where applicable, code taken from OpenZeppelin's Governor.sol contract. 
- * Note 2: Naming conventions followed from OpenZeppelin.  
+ * @notice the core contract of the SeparatedPowers protocol. Inherits from {LawsManager}, {AuthoritiesManager} and {Law}.
+ * Code derived from OpenZeppelin's Governor.sol contract. 
  * 
- * Note, changes in comparison to Governor.sol:
- * no ERC165 use; no interface. For this core Governor contract. -- might change later. 
- * most central functions do have a virtual internal function, so these can be changed by inheriting this contract. -- coding practice of OpenZeppelin. 
- * No use of OnlyGovernor modifier: no actions outside this contract allowed. In essence, ALL functions are 'onlyGovernor'.
- * No use of clock() function. For now, everything goes with blocknumbers. Not timestamps. 
- * Original contract is abstract, with extensions being plugged in. All this NOT here. Any additional functionality is brought in through external law contracts. 
+ * Some notable changes in comparison to Governor.sol 
+ * - At the moment in this contract no ERC165 use; no interface. This might change later. 
+ * - The onlyGovernor modifier is removed. 
+ * - the use of the {clock} is removed. Only blocknumbers are used at the moment, no timestamps. 
+ * - The original contract is set as abstract, with extensions being plugged in. SeparatedPowers is not an abstract contract, it is self contained.  
+ *   Any additional functionality is brought in through Laws or through updating internal functions in implementations of SeparatedPowers. 
  * 
+ * @author 7Cedars, Oct 2024, RnDAO CollabTech Hackathon
  */
 contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedPowers {
-    bytes32 public constant BALLOT_TYPEHASH =
-        keccak256("Ballot(uint256 proposalId,uint8 support,address voter,uint256 nonce)");
-    bytes32 public constant EXTENDED_BALLOT_TYPEHASH =
-        keccak256(
-            "ExtendedBallot(uint256 proposalId,uint8 support,address voter,uint256 nonce,string reason,bytes params)"
-        );
 
-    mapping(uint256 proposalId => ProposalCore) private _proposals;
-    string private _name;
+    mapping(uint256 proposalId => ProposalCore) private _proposals; // mapping from proposalId to proposalCore
+    string private _name; // name of the contract.
 
-    /* FUNCTIONS */
     /**
-     * @dev Sets the value for {name} and {version}
+     * @notice  Sets the value for {name} and {version} at the time of construction. 
+     * 
+     * @param name_ name of the contract
+     * @param version_ version of the contract
      */
     constructor(string memory name_) EIP712(name_, version()) { 
         _name = name_;
     }
 
     /**
-     * @dev Function to receive ETH 
-     * Can be updated if needed.
-     * No access control on this function: anyone can send funds into the main contract.    
+     * @notice receive function enabling ETH deposits.  
+     * 
+     * @dev This is a virtual function, and can be overridden in child contracts.
+     * @dev No access control on this function: anyone can send funds into the main contract.    
      */
     receive() external payable virtual {
       emit FundsReceived(msg.value);  
     }
 
     /**
-     * @dev 
+     * @notice saves the name of the SeparatedPowers implementation.
      */
     function name() public view virtual returns (string memory) {
         return _name;
     }
 
     /**
-     * @dev
+     * @notice saves the version of the SeparatedPowers implementation.
      */
     function version() public view virtual returns (string memory) {
         return "1";
     }
 
     /**
-     * @dev 
-     *
-     * Creates ProposalId on the basis of targets, values, callDatas and descriptionHash. 
-     * 
-     * Difference original: a second HasProposal (see below) includes an optional, additional, uint256 parentProposalId.  
-     * 
-     * See the desctiption from OpenZepplin's Governor.sol for more details on the original reasons.
-     * 
+     * @dev see {ISeperatedPowers.hashProposal}
      */
     function hashProposal(
         address targetLaw, 
@@ -86,7 +75,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     }
 
     /**
-     * @dev returns the State of a proposal. 
+     * @dev see {ISeperatedPowers.state}
      */
     function state(uint256 proposalId) public view virtual returns (ProposalState) {
         // We read the struct fields into the stack at once so Solidity emits a single SLOAD
@@ -120,14 +109,14 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     }
 
     /**
-     * @dev See {IGovernor-proposalDeadline}.
+     * @dev See {ISeperatedPowers.proposalDeadline}
      */
     function proposalDeadline(uint256 proposalId) public view virtual returns (uint256) {
         return _proposals[proposalId].voteStart + _proposals[proposalId].voteDuration;
     }
 
     /**
-     * @dev  
+     * @dev see {ISeperatedPowers.propose}
      */
     function propose(
         address targetLaw,
@@ -143,7 +132,9 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     }
 
     /**
-     * @dev Internal propose mechanism. Can be overridden to add more logic on proposal creation.
+     * @notice Internal propose mechanism. Can be overridden to add more logic on proposal creation.
+     * 
+     * @dev The mechanism checks for access of proposer and for the length of targets and calldatas. 
      *
      * Emits a {IGovernor-ProposalCreated} event.
      */
@@ -154,7 +145,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         bytes[] memory calldatas,
         string memory description
     ) internal virtual returns (uint256 proposalId) {
-        // note that targetLaw AND proposer are hashed into the proposalId. By including proposer in the hash, front running can be avoided. 
+        // note that targetLaw AND proposer are hashed into the proposalId. By including proposer in the hash, front running is avoided. 
         proposalId = hashProposal(targetLaw, proposer, targets, calldatas, keccak256(bytes(description)));
         uint64 accessRole = Law(targetLaw).accessRole(); 
         if (roles[accessRole].members[proposer] == 0) {
@@ -170,7 +161,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         uint32 duration = Law(targetLaw).votingPeriod(); 
         ProposalCore storage proposal = _proposals[proposalId];
         proposal.proposer = proposer;
-        proposal.voteStart = uint48(block.number); // at the moment proposal is made, voting start. 
+        proposal.voteStart = uint48(block.number); // at the moment proposal is made, voting start. There is no delay functionality. 
         proposal.voteDuration = duration;
 
         emit ProposalCreated(
@@ -188,7 +179,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     }
 
     /**
-     * @dev
+     * @dev see {ISeperatedPowers.execute}
      */
     function execute(
         address proposer, 
@@ -223,8 +214,8 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     }
 
     /**
-     * @dev Internal execution mechanism. Can be overridden (without a super call) to modify the way execution is
-     * performed (for example adding a vault/timelock).
+     * @notice Internal execution mechanism. Can be overridden (without a super call) to modify the way execution is
+     * performed 
      *
      * NOTE: Calling this function directly will NOT check the current state of the proposal, set the executed flag to
      * true or emit the `ProposalExecuted` event. Executing a proposal should be done using {execute} or {_execute}.
@@ -243,7 +234,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     }
 
     /**
-     * @dev See {IGovernor-cancel}.
+     * @dev See {IseperatedPowers.cancel}
      */
     function cancel(
         address targetLaw, 
@@ -265,10 +256,10 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     }
 
     /**
-     * @dev Internal cancel mechanism with minimal restrictions. A proposal can be cancelled in any state other than
+     * @notice Internal cancel mechanism with minimal restrictions. A proposal can be cancelled in any state other than
      * Cancelled, Expired, or Executed. Once cancelled a proposal can't be re-submitted.
      *
-     * Emits a {IGovernor-ProposalCancelled} event.
+     * Emits a {ISeperatedPowers-ProposalCanceled} event.
      */
     function _cancel(
         address targetLaw, 
@@ -286,7 +277,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     }
 
     /**
-     * @dev See {IGovernor-castVote}.
+     * @dev See {ISeperatedPowers.castVote}.
      */
     function castVote(uint256 proposalId, uint8 support) public virtual returns (uint256) {
         address voter = msg.sender;
@@ -294,7 +285,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     }
 
     /**
-     * @dev See {IGovernor-castVoteWithReason}.
+     * @dev See {ISeperatedPowers.castVoteWithReason}.
      */
     function castVoteWithReason(
         uint256 proposalId,
@@ -305,11 +296,10 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         return _castVote(proposalId, voter, support, reason);
     }
 
- /**
-     * @dev Internal vote casting mechanism: Check that the vote is pending, that it has not been cast yet, retrieve
-     * voting weight using {IGovernor-getVotes} and call the {_countVote} internal function. Uses the _defaultParams().
+    /**
+     * @notice Internal vote casting mechanism: Check that the proposal is active, and that account is has access to targetLaw.  
      *
-     * Emits a {IGovernor-VoteCast} event.
+     * Emits a {ISeperatedPowers-VoteCast} event.
      */
     function _castVote(
         uint256 proposalId,
@@ -317,10 +307,17 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         uint8 support,
         string memory reason
     ) internal virtual returns (uint256) {
+      // Check that the proposal is active, that it has not been paused, cancelled or ended yet. 
       if (SeparatedPowers(payable(address(this))).state(proposalId) != ProposalState.Active) {
         revert SeparatedPowers__ProposalNotActive(); 
       } 
-
+      // Note that we check if account has access to the law targetted in the proposal. 
+      address targetLaw = _proposals[proposalId].targetLaw;
+      uint64 accessRole = Law(targetLaw).accessRole();  
+      if (roles[accessRole].members[account] == 0) {
+        revert SeparatedPowers__NoAccessToTargetLaw();          
+      }
+      // if all this passes: cast vote. 
       _countVote(proposalId, account, support);  
       
       emit VoteCast(account, proposalId, support, reason);

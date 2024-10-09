@@ -14,6 +14,7 @@ interface ISeparatedPowers {
     error SeparatedPowers__ExecuteCallNotFromActiveLaw(); 
     error SeparatedPowers__OnlyProposer(address caller); 
     error SeparatedPowers__ProposalNotActive(); 
+    error SeparatedPowers__NoAccessToTargetLaw();
 
     enum ProposalState {
         Active,
