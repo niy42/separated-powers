@@ -114,7 +114,7 @@ As a flowchart
 Using SeparatedPowers.sol has a number of important implications  
 - The execute function in SeparatedPowers cannot be called directly, it can only be called through external restricted functions.
 - External restricted functions need to be whitelisted within SeparatedPowers, otherwise calls revert. 
-- External functions do not have to be called through proposals, if the function allows they can also be called directly. 
+- External functions do not have to be called through proposals, if the function allows they can also be called directly. They are always role restricted though. 
 - External functions can restrict what target contract(s), values(s) or calldata(s) are allowed to be included. They can have any custom logic (delays, timed executions, randomisation, etc). In short, they allow for including any type of governance logic. 
 - The latter implies that any added complexity to governance processes is placed among external restricted functions. The governance protocol itself does not become more complex.
 
@@ -125,6 +125,11 @@ External restricted function have the following characteristics:
 - They constrain these privileges with specific conditions. 
 
 They closely mirror what, in real life, are called **laws**. This is also how they are referred to throughout the protocol. 
+
+#### Granting accounts access control
+Assigning (and revoking) roles to accounts happens through the setRole function of the governance protocol. 
+- As with the execute function, setRole can only be called via external role restricted functions. 
+- NB: The strength of a protocol is directly related to how well distinct sub-communities are defined and roles assigned respectively.    
 
 ### Important files and folders
 
