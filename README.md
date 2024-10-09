@@ -71,7 +71,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About
-The extension restricts access to governance processes along restricted roles. 
+Separated Powers restricts access to governance processes along restricted roles. 
 
 ### What is the problem? 
 Current DAO governance tends to be highly centralised. In the large majority of cases, voting power in DAO is linked, in one way or another, to the tokens user own. It leads to a small group of users having an outsized influence on DAO decision making processes and disengagement among most other DAO members.  
@@ -82,8 +82,9 @@ Current DAO governance tends to be highly centralised. In the large majority of 
 - Using formal roles to separate powers in governance is a tried and true approach to safeguarding decentralisation of (social, political and economic) assets in light of their tendency to centralise around informal elites.
 
 ### How does it work? 
+Let us compare the proposed governance framework with the current dominant approach.
 
-#### Option 1: The traditional approach to DAO governance, using OpenZeppelin's Governor.sol contract
+#### The traditional approach to DAO governance, using OpenZeppelin's Governor.sol contract
 - A user proposes a proposal, that includes external target contract(s), values(s) and calldata(s). 
 - Users vote on this proposal, often their votes are weighted by the tokens they own or that have been delegated to them. 
 - When a user calls the execute function, it checks if the proposal has succeeded (and is not queued). If this is the case, the external functions are called with the values and calldatas.
@@ -94,31 +95,32 @@ As a flowchart
     <img src="public/GovernanceSimple_flowchart.png" alt="Schema Protocol" width="100%" height="100%">
   </a>
 
-Using Governance.sol has a number of important implications
-- There are inherent risks to using token weighted voting in DAO governance. To mitigate these risks, the governance logic needs to be adapted. 
-- Any adaptation to Governance.sol - either in the core protocol or through added modules - adds complexity: delays, guardian roles, queueing, rage quitting, etc etc. It never stops.  
-
-#### Option 2: Using SeparatedPowers.sol, have role B check decisions of role A
+#### Using SeparatedPowers.sol, have role B check decisions of role A
 - A user with role A proposes a proposal directed at a role restricted external function A. The function allows for including calldata with target contract(s), values(s) and calldata(s).
 - Users with role A vote on this proposal, their votes are not weighted.
 - When the vote passes, nothing happens. 
 - A user with role B proposes a proposal directed at a role restricted external function B. The function _only allows for including calldata with target contract(s), values(s) and calldata(s) that have been included in proposals to restricted external function A_. 
 - When a user calls external function B it checks if _both_ proposal A and proposal B have passed. If this is the case, the external functions calls execute with the values and calldatas included in the proposal.
-- The proposal chain can be made as long as required.  
+- The proposal chain can be made as long as required.
 
 As a flowchart
   <a href="https://github.com/7Cedars/separated-powers/blob/master/public/SeparatedPowers_flowchart.png"> 
     <img src="public/SeparatedPowers_flowchart.png" alt="Flowchart Governance.sol" width="100%" height="100%">
   </a>
 
-Using SeparatedPowers.sol has a number of important implications  
+### What are the implication of each governance approach? 
+#### Using Governance.sol
+- There are inherent risks to using token weighted voting in DAO governance. To mitigate these risks, the governance logic needs to be adapted. 
+- Any adaptation to Governance.sol - either in the core protocol or through added modules - adds complexity: delays, guardian roles, quadratic voting, queueing, rage quitting, etc etc. It never stops.  
+
+#### Using SeparatedPowers.sol
 - The execute function in SeparatedPowers cannot be called directly, it can only be called through external restricted functions.
 - External restricted functions need to be whitelisted within SeparatedPowers, otherwise calls revert. 
 - External functions do not have to be called through proposals, if the function allows they can also be called directly. They are always role restricted though. 
 - External functions can restrict what target contract(s), values(s) or calldata(s) are allowed to be included. They can have any custom logic (delays, timed executions, randomisation, etc). In short, they allow for including any type of governance logic. 
 - The latter implies that any added complexity to governance processes is placed among external restricted functions. The governance protocol itself does not become more complex.
 
-#### Characteristics and naming of 'external restricted functions'
+### External restricted functions as Laws
 External restricted function have the following characteristics: 
 - They apply to a subsection of a community. 
 - They give this sub-community specific privileges to call outside functions.

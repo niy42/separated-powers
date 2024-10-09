@@ -3,7 +3,6 @@ pragma solidity 0.8.26;
 
 import {Law} from "./Law.sol";
 import {IAuthoritiesManager} from "./interfaces/IAuthoritiesManager.sol"; 
-// import {SeparatedPowers} from "./SeparatedPowers.sol" ; 
 
 /**
  * @dev TBI: Description contract.
@@ -143,11 +142,11 @@ contract AuthoritiesManager is IAuthoritiesManager {
     }
     
     /* getters */
-    function hasRoleSince(address user, uint64 roleId) public returns (uint48 since) {
-      return roles[roleId].members[user]; 
+    function hasRoleSince(address account, uint64 roleId) public returns (uint48 since) {
+      return roles[roleId].members[account]; 
     }
 
-    function canCall(address caller, address targetLaw) external returns (bool)  {
+    function canCallLaw(address caller, address targetLaw) external returns (bool)  {
         _canCall(caller, targetLaw); 
     }
 } 

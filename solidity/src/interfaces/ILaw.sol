@@ -2,13 +2,19 @@
 pragma solidity 0.8.26;
 
 /**
- * @dev TBI: contract Executive Law. 
- * I can opt to follow OpenZeppelin with including most descriptions in the interface, not the actual contract. 
- *  
+ * @notice interface for law contracts.  
  */
 interface ILaw {
-
+    
+  /**
+  * @param callData call data to be executed. 
+  */ 
   function executeLaw (bytes memory callData) external; 
+  
+  /**
+  * @param callData call data to be executed.
+  * @param proposalId id of the proposal.
+  */
   function executeLaw (bytes memory callData, uint256 proposalId) external;
 
 }
