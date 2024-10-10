@@ -31,7 +31,6 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
      * @notice  Sets the value for {name} and {version} at the time of construction. 
      * 
      * @param name_ name of the contract
-     * @param version_ version of the contract
      */
     constructor(string memory name_) EIP712(name_, version()) { 
         _name = name_;
@@ -61,17 +60,28 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         return "1";
     }
 
+
     /**
      * @dev see {ISeperatedPowers.hashProposal}
      */
     function hashProposal(
         address targetLaw, 
-        address proposer,  
-        address[] memory targets,
-        bytes[] memory calldatas,
+        bytes memory executeCalldata,
         bytes32 descriptionHash
     ) public pure virtual returns (uint256) {
-        return uint256(keccak256(abi.encode(targetLaw, proposer, targets, calldatas, descriptionHash)));
+        return uint256(keccak256(abi.encode(targetLaw, executeCalldata, descriptionHash)));
+    }
+
+    /**
+     * @dev see {ISeperatedPowers.hashProposal}
+     */
+    function _encodeExecuteCalldata(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal pure virtual returns (bytes) {
+        return abi.encode(targets, values, calldatas, descriptionHash);
     }
 
     /**
@@ -119,16 +129,16 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
      * @dev see {ISeperatedPowers.propose}
      */
     function propose(
+        address proposer,
         address targetLaw,
-        address proposer, 
-        address[] memory targets,
-        bytes[] memory calldatas,
+        bytes executeCalldata,
         string memory description
     ) public virtual returns (uint256) {
       if (proposer != msg.sender) {
         revert SeparatedPowers__RestrictedProposer(); 
       }
-      return _propose(targetLaw, proposer, targets, calldatas, description);
+
+      return _propose(proposer, targetLaw, executeCalldata, description);
     }
 
     /**
@@ -139,21 +149,17 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
      * Emits a {IGovernor-ProposalCreated} event.
      */
     function _propose(
+        address proposer,
         address targetLaw,
-        address proposer, 
-        address[] memory targets,
-        bytes[] memory calldatas,
+        bytes memory executeCalldata,
         string memory description
     ) internal virtual returns (uint256 proposalId) {
         // note that targetLaw AND proposer are hashed into the proposalId. By including proposer in the hash, front running is avoided. 
-        proposalId = hashProposal(targetLaw, proposer, targets, calldatas, keccak256(bytes(description)));
+        proposalId = hashProposal(targetLaw, executeCalldata, keccak256(bytes(description)));
         uint64 accessRole = Law(targetLaw).accessRole(); 
         if (roles[accessRole].members[proposer] == 0) {
             revert SeparatedPowers__AccessDenied();
         } 
-        if (targets.length != calldatas.length || targets.length == 0) {
-            revert SeparatedPowers__InvalidProposalLength(targets.length, calldatas.length);
-        }
         if (_proposals[proposalId].voteStart != 0) {
             revert SeparatedPowers__UnexpectedProposalState();
         }
@@ -167,9 +173,9 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         emit ProposalCreated(
             proposalId,
             proposer,
-            targets,
-            new string[](targets.length),
-            calldatas,
+            targetLaw,
+            new string[](1),
+            executeCalldata,
             block.number,
             block.number + duration,
             description
@@ -188,6 +194,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) public payable virtual returns (uint256) {
+    
       uint256 proposalId = hashProposal(msg.sender, proposer, targets, calldatas, descriptionHash);
 
       if (_proposals[proposalId].proposer == address(0)) {

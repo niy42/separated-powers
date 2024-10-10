@@ -41,9 +41,9 @@ interface ISeparatedPowers {
     event ProposalCreated(
         uint256 proposalId,
         address proposer,
-        address[] targets,
-        string[] signatures,
-        bytes[] calldatas,
+        address targetLaw,
+        string signature,
+        bytes ececuteCalldata,
         uint256 voteStart,
         uint256 voteEnd,
         string description
@@ -70,10 +70,9 @@ interface ISeparatedPowers {
      * 
      */
     function hashProposal(
-        address targetLaw, 
         address proposer,  
-        address[] memory targets,
-        bytes[] memory calldatas,
+        address targetLaw, 
+        bytes memory calldatas,
         bytes32 descriptionHash
     ) external returns (uint256);
 
