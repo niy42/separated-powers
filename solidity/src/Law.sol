@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import "../lib/openzeppelin-contracts/contracts/utils/ShortStrings.sol";
+import {SeparatedPowers} from "./SeparatedPowers.sol";
 import {ILaw} from "./interfaces/ILaw.sol"; 
 import {EIP712} from "../lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
 import {ERC165} from "lib/openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
@@ -99,7 +100,7 @@ contract Law is IERC165, ERC165, EIP712, ILaw {
       }
 
       // step 3: check if caller has correct access control.
-      if (!msg.sender.hasRole(accessRole)) {
+      if (SeparatedPowers.hasRoleSince(msg.sender, address(this)) == 0) {
         revert Law__AccessNotAuthorized(msg.sender);
       }
 

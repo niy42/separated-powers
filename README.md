@@ -96,11 +96,11 @@ As a flowchart
   </a>
 
 #### Using SeparatedPowers.sol, have role B check decisions of role A
-- A user with role A proposes a proposal directed at a role restricted external function A. The function allows for including calldata with target contract(s), values(s) and calldata(s).
+- A user with role A proposes a proposal directed at a role restricted external function A. The proposal can have any type of data encoded in its calldata.
 - Users with role A vote on this proposal, their votes are not weighted.
 - When the vote passes, nothing happens. 
-- A user with role B proposes a proposal directed at a role restricted external function B. The function _only allows for including calldata with target contract(s), values(s) and calldata(s) that have been included in proposals to restricted external function A_. 
-- When a user calls external function B it checks if _both_ proposal A and proposal B have passed. If this is the case, the external functions calls execute with the values and calldatas included in the proposal.
+- A user with role B proposes a proposal directed at a role restricted external function B. The function _only allows for including the exact same calldata that was included in the proposal to restricted external function A_. 
+- When a user calls external function B it checks if _both_ proposal A and proposal B have passed. If this is the case, the external functions calls checks the calldata and calls the execute function with targets[], values[] and calldatas[].
 - The proposal chain can be made as long as required.
 
 As a flowchart
