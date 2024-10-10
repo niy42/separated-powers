@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Law} from "./Law.sol";
 import {IAuthoritiesManager} from "./interfaces/IAuthoritiesManager.sol"; 
 
 /**
@@ -11,7 +10,7 @@ import {IAuthoritiesManager} from "./interfaces/IAuthoritiesManager.sol";
  *
  */
 contract AuthoritiesManager is IAuthoritiesManager { 
-    mapping(uint256 proposalId => ProposalVote) private _proposalVotes;
+    mapping(uint256 proposalId => ProposalVote) public _proposalVotes;
     mapping(uint64 roleId => Role) public roles;   
     
     uint64 public constant ADMIN_ROLE = type(uint64).min; // 0
@@ -79,39 +78,6 @@ contract AuthoritiesManager is IAuthoritiesManager {
     }
 
     /**
-     * @notice internal function {quorumReached} that checks if the quorum for a given proposal has been reached.
-     *
-     * @param proposalId id of the proposal.
-     * @param targetLaw address of the law that the proposal belongs to. 
-     *
-     */
-    function _quorumReached(uint256 proposalId, address targetLaw) internal view virtual returns (bool) {
-        ProposalVote storage proposalVote = _proposalVotes[proposalId];
-
-        uint8 quorum = Law(targetLaw).quorum(); 
-        uint64 accessRole = Law(targetLaw).accessRole(); 
-        uint256 amountMembers = roles[accessRole].amountMembers;
-
-        return (amountMembers * quorum) / DECIMALS <= proposalVote.forVotes + proposalVote.abstainVotes; 
-    }
-
-    /**
-     * @dev internal function {voteSucceeded} that checks if a vote for a given proposal has succeeded.
-     *
-     * @param proposalId id of the proposal.
-     * @param targetLaw address of the law that the proposal belongs to.
-     */
-    function _voteSucceeded(uint256 proposalId, address targetLaw) internal view virtual returns (bool) {
-        ProposalVote storage proposalVote = _proposalVotes[proposalId];
-      
-        uint8 succeedAt = Law(targetLaw).succeedAt(); 
-        uint64 accessRole = Law(targetLaw).accessRole(); 
-        uint256 amountMembers = roles[accessRole].amountMembers;
-
-        return (amountMembers * succeedAt) / DECIMALS <= proposalVote.forVotes; 
-    }
-
-    /**
      * @notice internal function {countVote} that counts against, for, and abstain votes for a given proposal.
      * 
      * @dev In this module, the support follows the `VoteType` enum (from Governor Bravo).
@@ -142,31 +108,12 @@ contract AuthoritiesManager is IAuthoritiesManager {
 
     /* internal & private view & pure functions */
     /**
-     * @notice internal function {canCallLaw} that checks if a caller can call a given law.
-     *
-     * @param caller address of the caller.
-     * @param targetLaw address of the law to check. 
-     */
-    function _canCall(address caller, address targetLaw) internal virtual returns (bool) {
-        uint64 accessRole = Law(targetLaw).accessRole(); 
-        uint48 since =  hasRoleSince(caller, accessRole); 
-        
-        return since != 0; 
-    }
-    
-    /**
      * @dev see {IAuthoritiesManager.hasRoleSince}
      */
     function hasRoleSince(address account, uint64 roleId) public returns (uint48 since) {
       return roles[roleId].members[account]; 
     }
 
-    /**
-     * @dev see {IAuthoritiesManager.canCallLaw}
-     */
-    function canCallLaw(address caller, address targetLaw) external returns (bool)  {
-        _canCall(caller, targetLaw); 
-    }
 } 
 
 // Notes to self:

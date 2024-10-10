@@ -83,13 +83,4 @@ interface IAuthoritiesManager {
     */
     function hasRoleSince(address account, uint64 roleId) external returns (uint48 since); 
 
-    /**
-    * @notice checks if account can call a law.
-    *
-    * @param caller caller address
-    * @param targetLaw law address to check.
-    *
-    */
-    function canCallLaw(address caller, address targetLaw) external returns (bool canCall); 
-
 } 

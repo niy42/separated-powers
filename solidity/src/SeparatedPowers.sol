@@ -60,16 +60,15 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         return "1";
     }
 
-
     /**
      * @dev see {ISeperatedPowers.hashProposal}
      */
     function hashProposal(
         address targetLaw, 
-        bytes memory executeCalldata,
+        bytes memory lawCalldata,
         bytes32 descriptionHash
     ) public pure virtual returns (uint256) {
-        return uint256(keccak256(abi.encode(targetLaw, executeCalldata, descriptionHash)));
+        return uint256(keccak256(abi.encode(targetLaw, lawCalldata, descriptionHash)));
     }
 
     /**
@@ -80,7 +79,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) internal pure virtual returns (bytes) {
+    ) internal pure virtual returns (bytes memory) {
         return abi.encode(targets, values, calldatas, descriptionHash);
     }
 
@@ -131,14 +130,14 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     function propose(
         address proposer,
         address targetLaw,
-        bytes executeCalldata,
+        bytes memory lawCalldata,
         string memory description
     ) public virtual returns (uint256) {
       if (proposer != msg.sender) {
         revert SeparatedPowers__RestrictedProposer(); 
       }
 
-      return _propose(proposer, targetLaw, executeCalldata, description);
+      return _propose(proposer, targetLaw, lawCalldata, description);
     }
 
     /**
@@ -151,11 +150,11 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     function _propose(
         address proposer,
         address targetLaw,
-        bytes memory executeCalldata,
+        bytes memory lawCalldata,
         string memory description
     ) internal virtual returns (uint256 proposalId) {
         // note that targetLaw AND proposer are hashed into the proposalId. By including proposer in the hash, front running is avoided. 
-        proposalId = hashProposal(targetLaw, executeCalldata, keccak256(bytes(description)));
+        proposalId = hashProposal(targetLaw, lawCalldata, keccak256(bytes(description)));
         uint64 accessRole = Law(targetLaw).accessRole(); 
         if (roles[accessRole].members[proposer] == 0) {
             revert SeparatedPowers__AccessDenied();
@@ -174,8 +173,8 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
             proposalId,
             proposer,
             targetLaw,
-            new string[](1),
-            executeCalldata,
+            "",
+            lawCalldata,
             block.number,
             block.number + duration,
             description
@@ -188,14 +187,15 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
      * @dev see {ISeperatedPowers.execute}
      */
     function execute(
-        address proposer, 
+        address proposer,  
+        bytes memory lawCalldata, 
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) public payable virtual returns (uint256) {
-    
-      uint256 proposalId = hashProposal(msg.sender, proposer, targets, calldatas, descriptionHash);
+
+      uint256 proposalId = hashProposal(msg.sender, lawCalldata, descriptionHash);
 
       if (_proposals[proposalId].proposer == address(0)) {
         revert SeparatedPowers__InvalidProposalId(); 
@@ -245,21 +245,19 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
      */
     function cancel(
         address targetLaw, 
-        address proposer, 
-        address[] memory targets,
-        bytes[] memory calldatas,
+        bytes memory lawCalldata,
         bytes32 descriptionHash
     ) public virtual returns (uint256) {
         // The proposalId will be recomputed in the `_cancel` call further down. However we need the value before we
         // do the internal call, because we need to check the proposal state BEFORE the internal `_cancel` call
         // changes it. The `hashProposal` duplication has a cost that is limited, and that we accept.
-        uint256 proposalId = hashProposal(targetLaw, proposer, targets, calldatas, descriptionHash);
+        uint256 proposalId = hashProposal(targetLaw, lawCalldata, descriptionHash);
 
         if (msg.sender !=  _proposals[proposalId].proposer) {
             revert SeparatedPowers__OnlyProposer(msg.sender);
         }
 
-        return _cancel(targetLaw, proposer, targets, calldatas, descriptionHash);
+        return _cancel(targetLaw, lawCalldata, descriptionHash);
     }
 
     /**
@@ -270,12 +268,10 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
      */
     function _cancel(
         address targetLaw, 
-        address proposer, 
-        address[] memory targets,
-        bytes[] memory calldatas,
+        bytes memory lawCalldata,
         bytes32 descriptionHash
     ) internal virtual returns (uint256) {
-        uint256 proposalId = hashProposal(targetLaw, proposer, targets, calldatas, descriptionHash);
+        uint256 proposalId = hashProposal(targetLaw, lawCalldata, descriptionHash);
 
         _proposals[proposalId].cancelled = true;
         emit ProposalCancelled(proposalId);
@@ -328,6 +324,54 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
       _countVote(proposalId, account, support);  
       
       emit VoteCast(account, proposalId, support, reason);
+    }
+
+    /**
+     * @notice internal function {quorumReached} that checks if the quorum for a given proposal has been reached.
+     *
+     * @param proposalId id of the proposal.
+     * @param targetLaw address of the law that the proposal belongs to. 
+     *
+     */
+    function _quorumReached(uint256 proposalId, address targetLaw) internal view virtual returns (bool) {
+        ProposalVote storage proposalVote = _proposalVotes[proposalId];
+
+        uint8 quorum = Law(targetLaw).quorum(); 
+        uint64 accessRole = Law(targetLaw).accessRole(); 
+        uint256 amountMembers = roles[accessRole].amountMembers;
+
+        return (amountMembers * quorum) / DECIMALS <= proposalVote.forVotes + proposalVote.abstainVotes; 
+    }
+
+    /**
+     * @dev internal function {voteSucceeded} that checks if a vote for a given proposal has succeeded.
+     *
+     * @param proposalId id of the proposal.
+     * @param targetLaw address of the law that the proposal belongs to.
+     */
+    function _voteSucceeded(uint256 proposalId, address targetLaw) internal view virtual returns (bool) {
+        ProposalVote storage proposalVote = _proposalVotes[proposalId];
+      
+        uint8 succeedAt = Law(targetLaw).succeedAt(); 
+        uint8 quorum = Law(targetLaw).quorum(); 
+        uint64 accessRole = Law(targetLaw).accessRole(); 
+        uint256 amountMembers = roles[accessRole].amountMembers;
+        
+        // note if quorum is set to 0 in a Law, it will automatically return true.
+        return quorum == 0 || (amountMembers * succeedAt) / DECIMALS <= proposalVote.forVotes; 
+    }
+
+    /**
+     * @notice internal function {canCallLaw} that checks if a caller can call a given law.
+     *
+     * @param caller address of the caller.
+     * @param targetLaw address of the law to check. 
+     */
+    function canCallLaw(address caller, address targetLaw) public returns (bool) {
+        uint64 accessRole = Law(targetLaw).accessRole(); 
+        uint48 since =  hasRoleSince(caller, accessRole); 
+        
+        return since != 0; 
     }
 
 

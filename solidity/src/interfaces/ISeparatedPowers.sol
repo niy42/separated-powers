@@ -70,9 +70,8 @@ interface ISeparatedPowers {
      * 
      */
     function hashProposal(
-        address proposer,  
         address targetLaw, 
-        bytes memory calldatas,
+        bytes memory LawCalldata,
         bytes32 descriptionHash
     ) external returns (uint256);
 
@@ -90,10 +89,9 @@ interface ISeparatedPowers {
      * @dev  
      */
     function propose(
+        address proposer,
         address targetLaw,
-        address proposer, 
-        address[] memory targets,
-        bytes[] memory calldatas,
+        bytes memory lawCalldata,
         string memory description
     ) external returns (uint256);
 
@@ -102,6 +100,7 @@ interface ISeparatedPowers {
      */
     function execute(
         address proposer, 
+        bytes memory lawCalldata, 
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
@@ -114,9 +113,7 @@ interface ISeparatedPowers {
      */
     function cancel(
         address targetLaw, 
-        address proposer, 
-        address[] memory targets,
-        bytes[] memory calldatas,
+        bytes memory lawCalldata,
         bytes32 descriptionHash
     ) external returns (uint256); 
 
@@ -133,5 +130,14 @@ interface ISeparatedPowers {
         uint8 support,
         string calldata reason
     ) external returns (uint256);
+
+    /**
+    * @notice checks if account can call a law.
+    *
+    * @param caller caller address
+    * @param targetLaw law address to check.
+    *
+    */
+    function canCallLaw(address caller, address targetLaw) external returns (bool canCall); 
 
 }

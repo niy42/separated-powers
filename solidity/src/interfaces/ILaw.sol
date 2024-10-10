@@ -7,14 +7,9 @@ pragma solidity 0.8.26;
 interface ILaw {
     
   /**
-  * @param callData call data to be executed. 
+  * @param lawCallData call data to be executed. 
   */ 
-  function executeLaw (bytes memory callData) external; 
-  
-  /**
-  * @param callData call data to be executed.
-  * @param proposalId id of the proposal.
-  */
-  function executeLaw (bytes memory callData, uint256 proposalId) external;
+  function executeLaw (bytes memory lawCallData) external; 
+
 
 }

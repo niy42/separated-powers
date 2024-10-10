@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import "../lib/openzeppelin-contracts/contracts/utils/ShortStrings.sol";
 import {SeparatedPowers} from "./SeparatedPowers.sol";
+import {ISeparatedPowers} from "./interfaces/ISeparatedPowers.sol";
 import {ILaw} from "./interfaces/ILaw.sol"; 
 import {EIP712} from "../lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
 import {ERC165} from "lib/openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
@@ -27,6 +28,7 @@ contract Law is IERC165, ERC165, EIP712, ILaw {
   error Law__AccessNotAuthorized(address caller);  
   error Law__CallNotImplemented(); 
   error Law__InvalidLengths(uint256 lengthTargets, uint256 lengthCalldatas); 
+  error Law__TargetLawNotPassed(address targetLaw);
 
   string private _nameFallback;
 
@@ -35,7 +37,8 @@ contract Law is IERC165, ERC165, EIP712, ILaw {
   uint8 public immutable quorum; // in percent.  
   uint8 public immutable succeedAt; // in percent.  
   uint32 public immutable votingPeriod;  // voting period in blocks. The contract does not use clock(), for now.  
-  address public immutable separatedPowers; // address to related separatedPower contract. Laws cannot be shared between them. They have to be re-initialised through a constructor function.  
+  address payable public immutable separatedPowers; // address to related separatedPower contract. Laws cannot be shared between them. They have to be re-initialised through a constructor function.  
+  address public parentLaw; // address to law that need to pass before this law can pass. 
   string public description; // note: any length. 
   string constant version = "1";  
 
@@ -56,12 +59,12 @@ contract Law is IERC165, ERC165, EIP712, ILaw {
     string memory name_, 
     string memory description_, 
     uint64 accessRole_, 
-    address separatedPowers_
+    address payable separatedPowers_
     // following params are optional 
     // uint8 quorum_ , 
     // uint8 succeedAt_ ,  
     // uint32 votingPeriod_ ,
-    // address[] checkedLaws_
+    // address parentLaw_
     ) EIP712(name_, version) {
       name = name_.toShortString();
       description = description_; 
@@ -76,61 +79,49 @@ contract Law is IERC165, ERC165, EIP712, ILaw {
   /**
    * @dev See {ILaw-executeLaw}.
    * 
-   * @param executeCalldata
+   * @param lawCalldata any data needed to execute the law. 
    * 
-   * @dev This is an example law that does not need a vote to pass.
-   * @dev  
    */
   function executeLaw(
-    bytes memory executeCalldata
+    bytes memory lawCalldata
     ) external virtual {  
       
       revert Law__CallNotImplemented(); // acts as a blocker so that the function will not get executed.
       
       /* everything below is an example of how to implement laws. */   
 
+      // step 0: check if caller has correct access control.
+      if (SeparatedPowers(payable(separatedPowers)).hasRoleSince(msg.sender, accessRole) == 0) {
+        revert Law__AccessNotAuthorized(msg.sender);
+      }
+
       // step 1: decode the calldata.
-      // Note: executeCalldata can have any format. 
-      (address[] targets, uint256[] values, bytes[] memory calldatas, bytes32 descriptionHash) =
-           abi.decode(executeCalldata, (address[], uint256[], bytes[], bytes32));
+      // Note: lawCalldata can have any format. 
+      (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
+           abi.decode(lawCalldata, (address[], uint256[], bytes[], bytes32));
 
       // step 2 : check lengths.
       if (targets.length != calldatas.length || targets.length == 0) {
         revert Law__InvalidLengths(targets.length, calldatas.length);
       }
 
-      // step 3: check if caller has correct access control.
-      if (SeparatedPowers.hasRoleSince(msg.sender, address(this)) == 0) {
-        revert Law__AccessNotAuthorized(msg.sender);
+      // Note step 3: if a parentLaw is exists, check if the parentLaw has succeeded or has executed.
+      if (parentLaw != address(0)) {
+        uint256 parentProposalId = hashProposal(parentLaw, lawCalldata, descriptionHash); 
+        ISeparatedPowers.ProposalState parentState = SeparatedPowers(payable(separatedPowers)).state(parentProposalId);
+
+        if (
+          parentState != ISeparatedPowers.ProposalState.Executed || 
+          parentState != ISeparatedPowers.ProposalState.Succeeded
+          ) {
+          revert Law__TargetLawNotPassed(parentLaw);
+        }
       }
 
       // step 4: call {SeparatedPowers.execute}
       // note: a call to SeparatedPower.execute always has the same params: 
       // (uint256 /* proposalId */, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 /*descriptionHash*/)
-      
-      
-  }
-
-  /**
-   * @dev See {ILaw-executeLaw}. 
-   */
-  function executeLaw(
-    bytes memory executeCalldata,
-    uint256[] memory proposalIds
-  ) external virtual {
-    revert Law__CallNotImplemented(); 
-  }
-
-  /**
-  * @dev see {ISeperatedPowers.hashProposal}
-  */
-  function _encodeExecuteCalldata(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description
-    ) internal pure virtual returns (bytes) {
-        return abi.encode(targets, values, calldatas, keccak256(bytes(description)));
+      SeparatedPowers(separatedPowers).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
   }
 
   /**
@@ -138,6 +129,18 @@ contract Law is IERC165, ERC165, EIP712, ILaw {
    */
   function supportsInterface(bytes4 interfaceId) public view override(ERC165, IERC165) returns (bool) {
      return interfaceId == type(ILaw).interfaceId || super.supportsInterface(interfaceId);
+  }
+
+  
+  /**
+    * @dev see {ISeperatedPowers.hashProposal}
+    */
+  function hashProposal(
+      address targetLaw, 
+      bytes memory lawCalldata,
+      bytes32 descriptionHash
+  ) internal pure virtual returns (uint256) {
+      return uint256(keccak256(abi.encode(targetLaw, lawCalldata, descriptionHash)));
   }
 
 }
