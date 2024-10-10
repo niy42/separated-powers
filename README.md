@@ -120,18 +120,13 @@ As a flowchart
 - External functions can restrict what target contract(s), values(s) or calldata(s) are allowed to be included. They can have any custom logic (delays, timed executions, randomisation, etc). In short, they allow for including any type of governance logic. 
 - The latter implies that any added complexity to governance processes is placed among external restricted functions. The governance protocol itself does not become more complex.
 
-### External restricted functions as Laws
+### External restricted functions are Laws
 External restricted function have the following characteristics: 
 - They apply to a subsection of a community. 
 - They give this sub-community specific privileges to call outside functions.
 - They constrain these privileges with specific conditions. 
 
 They closely mirror what, in real life, are called **laws**. This is also how they are referred to throughout the protocol. 
-
-#### Granting accounts access control
-Assigning (and revoking) roles to accounts happens through the setRole function of the governance protocol. 
-- As with the execute function, setRole can only be called via external role restricted functions. 
-- NB: The strength of a protocol is directly related to how well distinct sub-communities are defined and roles assigned respectively.    
 
 ### Important files and folders
 
