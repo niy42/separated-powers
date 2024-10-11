@@ -17,6 +17,7 @@ import {EIP712} from "../lib/openzeppelin-contracts/contracts/utils/cryptography
  * - At the moment in this contract no ERC165 use; no interface. This might change later. 
  * - The onlyGovernor modifier is removed. 
  * - the use of the {clock} is removed. Only blocknumbers are used at the moment, no timestamps. 
+ * - There is currently no protection against front running. 
  * - The original contract is set as abstract, with extensions being plugged in. SeparatedPowers is not an abstract contract, it is self contained.  
  *   Any additional functionality is brought in through Laws or through updating internal functions in implementations of SeparatedPowers. 
  * 
@@ -27,13 +28,35 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     mapping(uint256 proposalId => ProposalCore) private _proposals; // mapping from proposalId to proposalCore
     string private _name; // name of the contract.
 
+    // a modifier that can be used in derived contracts to easily protect functions from being called from outside the protocol.
+    modifier onlySeparatedPowers() {
+        if (msg.sender != address(this)) {
+            revert SeparatedPowers__OnlySeparatedPowers();
+            _;
+        }
+    }
+
     /**
      * @notice  Sets the value for {name} and {version} at the time of construction. 
      * 
      * @param name_ name of the contract
      */
-    constructor(string memory name_) EIP712(name_, version()) { 
+    constructor(
+        string memory name_, 
+        address[] memory constitutionalLaws,
+        ConstituentRole[] memory constitutionalRoles
+        ) EIP712(name_, version()) { 
         _name = name_;
+
+        for (uint256 i = 0; i < constitutionalLaws.length; i++) {
+            setLaw(constitutionalLaws[i], true);
+        }
+
+        for (uint256 i = 0; i < constitutionalRoles.length; i++) {
+            setRole(constitutionalRoles[i].roleId, constitutionalRoles[i].account, true);
+        }
+
+        emit SeparatedPowers__Initialized(address(this));
     }
 
     /**
@@ -156,7 +179,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         // note that targetLaw AND proposer are hashed into the proposalId. By including proposer in the hash, front running is avoided. 
         proposalId = hashProposal(targetLaw, lawCalldata, keccak256(bytes(description)));
         uint64 accessRole = Law(targetLaw).accessRole(); 
-        if (roles[accessRole].members[proposer] == 0) {
+        if (roles[accessRole].members[proposer] == 0 && accessRole != PUBLIC_ROLE) {
             revert SeparatedPowers__AccessDenied();
         } 
         if (_proposals[proposalId].voteStart != 0) {
@@ -194,22 +217,27 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) public payable virtual returns (uint256) {
+      // very first check: is call from an active law? 
+        if (!activeLaws[msg.sender]) {
+            revert SeparatedPowers__ExecuteCallNotFromActiveLaw(); 
+        }
 
-      uint256 proposalId = hashProposal(msg.sender, lawCalldata, descriptionHash);
+        uint64 accessRole = Law(msg.sender).accessRole(); 
+        if (roles[accessRole].members[proposer] == 0 && accessRole != PUBLIC_ROLE) {
+            revert SeparatedPowers__AccessDenied();
+        } 
 
-      if (_proposals[proposalId].proposer == address(0)) {
-        revert SeparatedPowers__InvalidProposalId(); 
-      }
-      if (_proposals[proposalId].executed == true) {
-        revert SeparatedPowers__ProposalAlreadyExecuted(); 
-      }
-      if (_proposals[proposalId].cancelled == true) {
-        revert SeparatedPowers__ProposalCancelled(); 
-      }
-      if (!activeLaws[msg.sender]) {
-        revert SeparatedPowers__ExecuteCallNotFromActiveLaw(); 
-      }
-
+        uint256 proposalId = hashProposal(msg.sender, lawCalldata, descriptionHash);
+        if (_proposals[proposalId].proposer == address(0)) {
+            revert SeparatedPowers__InvalidProposalId(); 
+        }
+        if (_proposals[proposalId].executed == true) {
+            revert SeparatedPowers__ProposalAlreadyExecuted(); 
+        }
+        if (_proposals[proposalId].cancelled == true) {
+            revert SeparatedPowers__ProposalCancelled(); 
+        }
+     
       // mark as executed before calls to avoid reentrancy
       _proposals[proposalId].executed = true;
 
@@ -317,7 +345,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
       // Note that we check if account has access to the law targetted in the proposal. 
       address targetLaw = _proposals[proposalId].targetLaw;
       uint64 accessRole = Law(targetLaw).accessRole();  
-      if (roles[accessRole].members[account] == 0) {
+      if (roles[accessRole].members[account] == 0 && accessRole != PUBLIC_ROLE) {
         revert SeparatedPowers__NoAccessToTargetLaw();          
       }
       // if all this passes: cast vote. 
@@ -340,7 +368,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         uint64 accessRole = Law(targetLaw).accessRole(); 
         uint256 amountMembers = roles[accessRole].amountMembers;
 
-        return (amountMembers * quorum) / DECIMALS <= proposalVote.forVotes + proposalVote.abstainVotes; 
+        return (amountMembers * quorum) / DENOMINATOR <= proposalVote.forVotes + proposalVote.abstainVotes; 
     }
 
     /**
@@ -358,7 +386,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         uint256 amountMembers = roles[accessRole].amountMembers;
         
         // note if quorum is set to 0 in a Law, it will automatically return true.
-        return quorum == 0 || (amountMembers * succeedAt) / DECIMALS <= proposalVote.forVotes; 
+        return quorum == 0 || (amountMembers * succeedAt) / DENOMINATOR <= proposalVote.forVotes; 
     }
 
     /**

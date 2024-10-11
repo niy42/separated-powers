@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 interface ISeparatedPowers { 
     /* errors */
     error SeparatedPowers__RestrictedProposer(); 
+    error SeparatedPowers__OnlySeparatedPowers(); 
     error SeparatedPowers__AccessDenied(); 
     error SeparatedPowers__UnexpectedProposalState(); 
     error SeparatedPowers__InvalidProposalId(); 
@@ -34,6 +35,7 @@ interface ISeparatedPowers {
     }
 
     /* Events */
+    event SeparatedPowers__Initialized(address contractAddress);
     event ProposalExecuted(uint256 indexed proposalId); 
     event ProposalCancelled(uint256 indexed proposalId);
     event VoteCast(address indexed account, uint256 indexed proposalId, uint8 indexed support, string reason);

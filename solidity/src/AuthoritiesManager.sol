@@ -13,9 +13,9 @@ contract AuthoritiesManager is IAuthoritiesManager {
     mapping(uint256 proposalId => ProposalVote) public _proposalVotes;
     mapping(uint64 roleId => Role) public roles;   
     
-    uint64 public constant ADMIN_ROLE = type(uint64).min; // 0
-    uint64 public constant PUBLIC_ROLE = type(uint64).max; // 2**64-1
-    uint256 constant DECIMALS = 100;
+    uint64 public constant ADMIN_ROLE = type(uint64).min; // == 0
+    uint64 public constant PUBLIC_ROLE = type(uint64).max; // == 0
+    uint256 constant DENOMINATOR = 100;
     
     /**
     * @dev see {IAuthoritiesManager.setRole}
@@ -39,10 +39,6 @@ contract AuthoritiesManager is IAuthoritiesManager {
         address account,
         bool access
     ) internal virtual returns (bool) {
-        if (roleId == PUBLIC_ROLE) {
-            revert AuthorityManager_LockedRole(roleId);
-        }
-
         bool newMember = roles[roleId].members[account] == 0;
         bool accessChanged;  
 
@@ -112,6 +108,10 @@ contract AuthoritiesManager is IAuthoritiesManager {
      */
     function hasRoleSince(address account, uint64 roleId) public returns (uint48 since) {
       return roles[roleId].members[account]; 
+    }
+
+    function getAmountMembers(uint64 roleId) public returns (uint256 amountMembers) {
+      return roles[roleId].amountMembers; 
     }
 
 } 
