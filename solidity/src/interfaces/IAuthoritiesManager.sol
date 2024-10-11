@@ -40,6 +40,16 @@ interface IAuthoritiesManager {
         mapping(address account => uint48 since) members;
         uint256 amountMembers; 
     }
+
+    /**
+    * @dev struct keeping track of 1) account acceess to role and 2) total amount of members of role.
+    */
+    struct ConstituentRole {
+        // Members of the role.
+        address account; 
+        uint64 roleId; 
+    }
+    
     
     /**
      * @dev Emitted when a role is set.

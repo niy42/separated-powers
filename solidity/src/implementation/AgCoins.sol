@@ -4,40 +4,12 @@ pragma solidity 0.8.26;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
- * @dev Mock contract for testing purposes.
+ * @dev Mock ERC20 contract for use in the agDAO example implementation of the SeparatedPowers protocol.
  *  
  */
 contract AgCoins is ERC20 {
-
-  // error ElectoralLaw__CallNotImplemented(); 
-
-  // /**
-  //  * elect function without proposalId. 
-  //  * this allows for direct execution of governance actions, skipping a vote.  
-  //  */
-  // function elect external (
-  //   bytes memory callData
-  //   ) public checkAuthorized(separatedPowers) { 
-
-  //   // (address[] users, uint64[] roleIds, bytes32 descriptionHash) =
-  //   //         abi.decode(callData, (address[], uint64[], bytes32));
-
-  //   revert ElectoralLaw__CallNotImplemented(); 
-  // } 
-
-  // /**
-  //  * elect function with proposalId. 
-  //  * this allows for checking if linked proposalId (and related content) has been subject to a vote. 
-  //  */
-  // function elect external (
-  //   bytes memory callData,
-  //   uint256 proposalId
-  //   ) public checkAuthorized(separatedPowers) { 
-
-  //   // (address[] users, uint64[] roleIds, bytes32 descriptionHash) =
-  //   //         abi.decode(callData, (address[], uint64[], bytes32));
-
-  //   revert ElectoralLaw__CallNotImplemented();   
-  // } 
+  constructor() ERC20("AgCoins", "AGC") {
+        _mint(msg.sender, type(uint256).max);
+  }
 
 }

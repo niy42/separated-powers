@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Law} from "../Law.sol"
+import {Law} from "../../Law.sol";
 
 /**
  * @notice Example Law contract. 
