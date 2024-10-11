@@ -81,6 +81,8 @@ contract Law is IERC165, ERC165, EIP712, ILaw {
    * 
    * @param lawCalldata any data needed to execute the law. 
    * 
+   * @dev this function needs to be overwritten with the custom logic of the law. 
+   * 
    */
   function executeLaw(
     bytes memory lawCalldata
@@ -91,37 +93,37 @@ contract Law is IERC165, ERC165, EIP712, ILaw {
       /* everything below is an example of how to implement laws. */   
 
       // step 0: check if caller has correct access control.
-      if (SeparatedPowers(payable(separatedPowers)).hasRoleSince(msg.sender, accessRole) == 0) {
-        revert Law__AccessNotAuthorized(msg.sender);
-      }
+      // if (SeparatedPowers(payable(separatedPowers)).hasRoleSince(msg.sender, accessRole) == 0) {
+      //   revert Law__AccessNotAuthorized(msg.sender);
+      // }
 
-      // step 1: decode the calldata.
-      // Note: lawCalldata can have any format. 
-      (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
-           abi.decode(lawCalldata, (address[], uint256[], bytes[], bytes32));
+      // // step 1: decode the calldata.
+      // // Note: lawCalldata can have any format. 
+      // (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
+      //      abi.decode(lawCalldata, (address[], uint256[], bytes[], bytes32));
 
-      // step 2 : check lengths.
-      if (targets.length != calldatas.length || targets.length == 0) {
-        revert Law__InvalidLengths(targets.length, calldatas.length);
-      }
+      // // step 2 : check lengths.
+      // if (targets.length != calldatas.length || targets.length == 0) {
+      //   revert Law__InvalidLengths(targets.length, calldatas.length);
+      // }
 
-      // Note step 3: if a parentLaw is exists, check if the parentLaw has succeeded or has executed.
-      if (parentLaw != address(0)) {
-        uint256 parentProposalId = hashProposal(parentLaw, lawCalldata, descriptionHash); 
-        ISeparatedPowers.ProposalState parentState = SeparatedPowers(payable(separatedPowers)).state(parentProposalId);
+      // // Note step 3: if a parentLaw is exists, check if the parentLaw has succeeded or has executed.
+      // if (parentLaw != address(0)) {
+      //   uint256 parentProposalId = hashProposal(parentLaw, lawCalldata, descriptionHash); 
+      //   ISeparatedPowers.ProposalState parentState = SeparatedPowers(payable(separatedPowers)).state(parentProposalId);
 
-        if (
-          parentState != ISeparatedPowers.ProposalState.Executed || 
-          parentState != ISeparatedPowers.ProposalState.Succeeded
-          ) {
-          revert Law__TargetLawNotPassed(parentLaw);
-        }
-      }
+      //   if (
+      //     parentState != ISeparatedPowers.ProposalState.Executed || 
+      //     parentState != ISeparatedPowers.ProposalState.Succeeded
+      //     ) {
+      //     revert Law__TargetLawNotPassed(parentLaw);
+      //   }
+      // }
 
-      // step 4: call {SeparatedPowers.execute}
-      // note: a call to SeparatedPower.execute always has the same params: 
-      // (uint256 /* proposalId */, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 /*descriptionHash*/)
-      SeparatedPowers(separatedPowers).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
+      // // step 4: call {SeparatedPowers.execute}
+      // // note: a call to SeparatedPower.execute always has the same params: 
+      // // (uint256 /* proposalId */, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 /*descriptionHash*/)
+      // SeparatedPowers(separatedPowers).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
   }
 
   /**

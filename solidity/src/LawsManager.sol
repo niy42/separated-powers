@@ -9,8 +9,6 @@ import {ILawsManager} from "./interfaces/ILawsManager.sol";
  * @dev This libary only manages setting law address to true and false + some getters. 
  * Laws are contracts of their own that need to be deployed through their own constructor functions. 
  * for now, this is just super simple. More complexity will be added later. 
- *
- * @author 7Cedars, Oct 2024, RnDAO CollabTech Hackathon
  *  
  */
 contract LawsManager is ILawsManager {

@@ -3,8 +3,6 @@ pragma solidity 0.8.26;
 
 /**
  * @notice interface for law contracts.  
- *
- * @author 7Cedars, Oct 2024 RnDAO CollabTech Hackathon
  */
 interface ILawsManager {
   error LawsManager_NotAuthorized(); 

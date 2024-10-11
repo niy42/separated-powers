@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-// import {Law} from "./Law.sol"
-// import {IExecutive} from "./IExecutive.sol"
-// import {SeparatedPowers} from "../SeparatedPowers.sol"
+import {Law} from "../Law.sol"
 
 /**
- * @dev TBI: contract Executive Law. 
+ * @notice Example Law contract. 
+ * 
+ * @dev In this contract...
+ *
  *  
  */
-contract Executive {
+contract ElectAdmins is Law {
 
   // error ExecutiveLaw__CallNotImplemented(); 
 

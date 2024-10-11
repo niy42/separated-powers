@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-// import {Law} from "./Law.sol"
-// import {IElectoral} from "./IExecutive.sol"
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
- * @dev TBI: contract Executive Law. 
+ * @dev Mock contract for testing purposes.
  *  
  */
-contract Electoral {
+contract AgCoins is ERC20 {
 
   // error ElectoralLaw__CallNotImplemented(); 
 
