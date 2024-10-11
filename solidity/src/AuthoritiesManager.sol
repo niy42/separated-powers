@@ -110,6 +110,10 @@ contract AuthoritiesManager is IAuthoritiesManager {
       return roles[roleId].members[account]; 
     }
 
+    function getAmountMembers(uint64 roleId) public returns (uint256 amountMembers) {
+      return roles[roleId].amountMembers; 
+    }
+
 } 
 
 // Notes to self:

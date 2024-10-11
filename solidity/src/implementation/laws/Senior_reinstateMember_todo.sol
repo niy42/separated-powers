@@ -10,7 +10,7 @@ import {Law} from "../../Law.sol";
  *
  *  
  */
-contract ElectAdmins is Law {
+abstract contract ElectAdmins is Law {
 
   // error ExecutiveLaw__CallNotImplemented(); 
 

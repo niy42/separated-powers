@@ -2,7 +2,9 @@
 pragma solidity 0.8.26;
 
 import {Law} from "../../Law.sol";
+import {SeparatedPowers} from "../../SeparatedPowers.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/ShortStrings.sol";
 
 /**
  * @notice Example Law contract. 
@@ -14,33 +16,37 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 contract Member_proposeCoreValue is Law {
     string private _name = "Member_proposeCoreValue"; 
-    address public agCoins; 
+    address public agCoins;
+    address public agDao;  
     uint256 agCoinsReward = 100_000;  
     
-    constructor(address payable agDao, address agCoins) // can take a address parentLaw param. 
+    constructor(address payable agDao_, address agCoins_) // can take a address parentLaw param. 
       Law(
         "Member_proposeCoreValue", // = name
         "A member of agDAO can propose new values to be added to the core values of the DAO.", // = description
         3, // = access roleId 
-        agDao, // = SeparatedPower.sol derived contract. Core of protocol.   
+        agDao_, // = SeparatedPower.sol derived contract. Core of protocol.   
         30, // = quorum
         60, // = succeedAt
         3_600, // votingPeriod_ in blocks, On arbitrum each block is about .5 (half) a second. This is about half an hour. 
         address(0) // = parent Law 
-    ) {} 
+    ) {
+      agDao = agDao_;
+      agCoins = agCoins_;
+    } 
 
     function executeLaw(
       bytes memory lawCalldata
-      ) external virtual {  
+      ) external override {  
 
       // step 0: check if caller has correct access control.
-      if (SeparatedPowers(payable(separatedPowers)).hasRoleSince(msg.sender, accessRole) == 0) {
+      if (SeparatedPowers(payable(agDao)).hasRoleSince(msg.sender, accessRole) == 0) {
         revert Law__AccessNotAuthorized(msg.sender);
       }
 
       // step 1: decode the calldata. Note: lawCalldata can have any format. 
-      (shortString memory requirement, bytes32 descriptionHash) =
-            abi.decode(lawCalldata, (shortString, bytes32));
+      (ShortString requirement, bytes32 descriptionHash) =
+            abi.decode(lawCalldata, (ShortString, bytes32));
 
       // step 2 : creating data to send to the execute function of agDAO's SepearatedPowers contract.
       address[] memory targets = new address[](1);

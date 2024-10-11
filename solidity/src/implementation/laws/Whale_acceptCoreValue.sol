@@ -3,8 +3,9 @@ pragma solidity 0.8.26;
 
 import {Law} from "../../Law.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ISeparatedPowers} from "./interfaces/ISeparatedPowers.sol";
-import {SeparatedPowers} from "./SeparatedPowers.sol";
+import {ISeparatedPowers} from "../../interfaces/ISeparatedPowers.sol";
+import {SeparatedPowers} from "../../SeparatedPowers.sol";
+import "@openzeppelin/contracts/utils/ShortStrings.sol";
 
 /**
  * @notice Example Law contract. 
@@ -21,6 +22,7 @@ contract Whale_acceptCoreValue is Law {
     error Whale_acceptCoreValue__TargetLawNotSet(); 
 
     address public agCoins; 
+    address public agDao;
     uint256 agCoinsReward = 50_000; 
     
     constructor(address payable agDao_, address parentLaw_, address agCoins_) // can take a address parentLaw param. 
@@ -34,26 +36,27 @@ contract Whale_acceptCoreValue is Law {
         3_600, // votingPeriod_ in blocks, On arbitrum each block is about .5 (half) a second. This is about half an hour. 
         parentLaw_ // = parent Law 
     ) {
+      agDao = agDao_;
       agCoins = agCoins_;
     } 
 
     function executeLaw(
       bytes memory lawCalldata
-      ) external virtual {  
+      ) external override {  
 
       // step 0: check if caller has correct access control.
-      if (SeparatedPowers(payable(separatedPowers)).hasRoleSince(msg.sender, accessRole) == 0) {
+      if (SeparatedPowers(payable(agDao)).hasRoleSince(msg.sender, accessRole) == 0) {
         revert Law__AccessNotAuthorized(msg.sender);
       }
 
       // step 1: decode the calldata. Note: lawCalldata can have any format. 
-      (ShortString memory requirement, bytes32 descriptionHash) =
+      (ShortString requirement, bytes32 descriptionHash) =
             abi.decode(lawCalldata, (ShortString, bytes32));
 
       // Note step 2: if a parentLaw is exists, check if the parentLaw has succeeded or has executed.
       if (parentLaw != address(0)) {
         uint256 parentProposalId = hashProposal(parentLaw, lawCalldata, descriptionHash); 
-        ISeparatedPowers.ProposalState parentState = SeparatedPowers(payable(separatedPowers)).state(parentProposalId);
+        ISeparatedPowers.ProposalState parentState = SeparatedPowers(payable(agDao)).state(parentProposalId);
 
         if (
           parentState != ISeparatedPowers.ProposalState.Executed || 

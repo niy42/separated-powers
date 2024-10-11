@@ -30,7 +30,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
 
     // a modifier that can be used in derived contracts to easily protect functions from being called from outside the protocol.
     modifier onlySeparatedPowers() {
-        if (msg.sender == address(this)) {
+        if (msg.sender != address(this)) {
             revert SeparatedPowers__OnlySeparatedPowers();
             _;
         }

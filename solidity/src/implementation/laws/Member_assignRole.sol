@@ -2,6 +2,8 @@
 pragma solidity 0.8.26;
 
 import {Law} from "../../Law.sol";
+import {SeparatedPowers} from "../../SeparatedPowers.sol";
+import {AgDAO} from "../AgDAO.sol";
 
 /**
  * @notice Example Law contract. 
@@ -12,34 +14,41 @@ import {Law} from "../../Law.sol";
  */
 contract Member_assignRole is Law {
     error Member_assignRole__IncorrectRequiredStatement(); 
+    error Member_assignRole__AccountBlacklisted(); 
 
-    string memory requiredStatement = "Request membership to agDAO";
+    string private requiredStatement = "I request membership to agDAO.";
+    address public agDao;  
     
-    constructor(address payable agDao) // can take a address parentLaw param. 
-
+    constructor(address payable agDao_) // can take a address parentLaw param. 
       Law(
         "Member_assignRole", // = name
-        "Any account can become member of the agDAO by sending keccak256(bytes('Request membership to agDAO') to the agDAO.", // = description
-        type(uint256).max, // = access PUBLIC_ROLE
-        agDao, // = SeparatedPower.sol derived contract. Core of protocol.   
+        "Any account can become member of the agDAO by sending keccak256(bytes('I request membership to agDAO.') to the agDAO. Blacklisted accounts cannot become members.", // = description
+        type(uint64).max, // = access PUBLIC_ROLE
+        agDao_, // = SeparatedPower.sol derived contract. Core of protocol.   
         0, // = no quorum, means no vote. 
         0, // = succeedAt
         0, // votingPeriod_ in blocks, On arbitrum each block is about .5 (half) a second. This is about half an hour. 
         address(0) // = parent Law 
-    ) {} 
+    ) {
+      agDao = agDao_;
+    } 
 
     function executeLaw(
       bytes memory lawCalldata
-      ) external virtual {  
+      ) external override {  
 
       // step 0: note: access control absent. Any one can call this law. 
 
       // step 1: decode the calldata. Note: lawCalldata can have any format. 
       bytes32 requiredDescriptionHash = keccak256(bytes(requiredStatement)); 
       (bytes32 descriptionHash) = abi.decode(lawCalldata, (bytes32));
-
       if (requiredDescriptionHash != descriptionHash) {
         revert Member_assignRole__IncorrectRequiredStatement();
+      }
+
+      // check if account is blacklisted. 
+      if (AgDAO(payable(agDao)).isAccountBlacklisted(msg.sender) == true) {
+        revert Member_assignRole__AccountBlacklisted();
       }
 
       // step 3 : creating data to send to the execute function of agDAO's SepearatedPowers contract.
