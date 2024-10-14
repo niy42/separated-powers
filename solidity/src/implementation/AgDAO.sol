@@ -18,14 +18,11 @@ contract AgDAO is SeparatedPowers {
   ShortString[] public coreRequirements; // description of short strings. have to be shorter than 31 characters.
   mapping(address => bool) public blacklistedAccounts; // description of short strings. have to be shorter than 31 characters.
 
-  constructor(address[] memory constitutionalLaws, ConstituentRole[] memory constituentRoles ) SeparatedPowers(
+  constructor() SeparatedPowers(
     'agDAO', // name of the DAO. 
-    constitutionalLaws, // list of laws that will be active at initiation.
-    constituentRoles // a list of accounts that will be assigned roles at initiation. // NB! I need to assign at least one account to Senior role - otherwise the DAO will not work.
-    ) {
-      setRole(ADMIN_ROLE, msg.sender, true); // the account that initiates the DAO is set to admin. 
-    } // this constructor should actually take constitutional laws. 
+    ) {} 
 
+  // a few functions that are specific to the AgDAO.
   function addRequirement(ShortString requirement) public onlySeparatedPowers {
     coreRequirements.push(requirement);
   }

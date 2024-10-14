@@ -24,7 +24,7 @@ contract Senior_reinstateMember is Law {
     address public agDao;
     uint256 agCoinsReward = 250_000; 
     
-    constructor(address payable agDao_, address Member_challengeRevoke, address agCoins_) // can take a address parentLaw param. 
+    constructor(address payable agDao_, address agCoins_, address Member_challengeRevoke) // can take a address parentLaw param. 
       Law(
         "Senior_reinstateMember", // = name
         "Senior can reinstate a member, following a challenge by the member having been revoked.", // = description

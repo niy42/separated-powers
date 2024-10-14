@@ -27,7 +27,7 @@ contract Whale_acceptCoreValue is Law {
     address public agDao;
     uint256 agCoinsReward = 50_000; 
     
-    constructor(address payable agDao_, address parentLaw_, address agCoins_) // can take a address parentLaw param. 
+    constructor(address payable agDao_, address agCoins_ address member_proposeCoreValue,) // can take a address parentLaw param. 
       Law(
         "Whale_acceptCoreValue", // = name
         "A whale role holder ar agDAO can accept a new requirement and add it to the core values of the DAO. The whale will receive an AgCoin reward in return.", // = description
@@ -36,7 +36,7 @@ contract Whale_acceptCoreValue is Law {
         30, // = quorum
         51, // = succeedAt
         3_600, // votingPeriod_ in blocks, On arbitrum each block is about .5 (half) a second. This is about half an hour. 
-        parentLaw_ // = parent Law 
+        member_proposeCoreValue // = parent Law 
     ) {
       agDao = agDao_;
       agCoins = agCoins_;

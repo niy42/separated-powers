@@ -25,6 +25,7 @@ import {EIP712} from "../lib/openzeppelin-contracts/contracts/utils/cryptography
  */
 contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedPowers {
     /* errors */
+    error SeparatedPowers__ConstitutionAlreadyExecuted(); 
     error SeparatedPowers__RestrictedProposer(); 
     error SeparatedPowers__OnlySeparatedPowers(); 
     error SeparatedPowers__AccessDenied(); 
@@ -42,6 +43,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     /* State variables */
     mapping(uint256 proposalId => ProposalCore) private _proposals; // mapping from proposalId to proposalCore
     string private _name; // name of the contract.
+    bool private _constitutionalLawsExecuted; // name of the contract.
 
     /* Events */
     event SeparatedPowers__Initialized(address contractAddress);
@@ -83,19 +85,10 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
      * @param name_ name of the contract
      */
     constructor(
-        string memory name_, 
-        address[] memory constitutionalLaws,
-        ConstituentRole[] memory constitutionalRoles
+        string memory name_
         ) EIP712(name_, version()) { 
         _name = name_;
-
-        for (uint256 i = 0; i < constitutionalLaws.length; i++) {
-            setLaw(constitutionalLaws[i], true);
-        }
-
-        for (uint256 i = 0; i < constitutionalRoles.length; i++) {
-            setRole(constitutionalRoles[i].roleId, constitutionalRoles[i].account, true);
-        }
+        setRole(ADMIN_ROLE, msg.sender, true); // the account that initiates a SeparatedPowers contract is set to its admin.
 
         emit SeparatedPowers__Initialized(address(this));
     }
@@ -114,6 +107,34 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     //////////////////////////////
     //        EXTERNAL          //
     //////////////////////////////
+    /**
+     * @dev see {ISeperatedPowers.constitute}
+     */
+    function constitute(
+        address[] memory constitutionalLaws,
+        ConstituentRole[] memory constitutionalRoles
+    ) external virtual {
+        // check 1: only admin can call this function
+        if (roles[ADMIN_ROLE].members[msg.sender] == 0) {
+            revert SeparatedPowers__AccessDenied();
+        }
+
+        // check 2: this function can only be called once.
+        if (_constitutionalLawsExecuted) {
+            revert SeparatedPowers__ConstitutionAlreadyExecuted();
+        }
+        
+        // if checks pass, set _constitutionalLawsExecuted to true... 
+        _constitutionalLawsExecuted = true;
+
+        // ...and execute constitutional laws
+        for (uint256 i = 0; i < constitutionalLaws.length; i++) {
+            setLaw(constitutionalLaws[i], true);
+        }
+        for (uint256 i = 0; i < constitutionalRoles.length; i++) {
+            setRole(constitutionalRoles[i].roleId, constitutionalRoles[i].account, true);
+        }
+    }
 
     /**
      * @dev see {ISeperatedPowers.propose}

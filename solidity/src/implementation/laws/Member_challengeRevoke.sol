@@ -22,7 +22,7 @@ contract Member_challengeRevoke is Law {
     string private requiredStatement = "I challenge the revoking of my membership to agDAO.";
     address public agDao;  
     
-    constructor(address payable agDao_, address Whale_revokeMember) // can take a address parentLaw param. 
+    constructor(address payable agDao_, address whale_revokeMember) // can take a address parentLaw param. 
       Law(
         "Member_assignRole", // = name
         "Any account that has been revoked can challenge this decision by sending a message and the data of the revoke decision to the agDAO.", // = description
@@ -31,7 +31,7 @@ contract Member_challengeRevoke is Law {
         0, // = no quorum, means no vote. 
         0, // = succeedAt
         0, // votingPeriod_ in blocks, On arbitrum each block is about .5 (half) a second. This is about half an hour. 
-        Whale_revokeMember // = no parent Law
+        whale_revokeMember // = no parent Law
     ) {
       agDao = agDao_;
     } 

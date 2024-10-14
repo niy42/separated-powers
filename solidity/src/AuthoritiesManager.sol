@@ -10,13 +10,34 @@ import {IAuthoritiesManager} from "./interfaces/IAuthoritiesManager.sol";
  *
  */
 contract AuthoritiesManager is IAuthoritiesManager { 
+    /* errors */
+    error AuthorityManager_NotAuthorized(address invalidAddress);
+    error AuthorityManager_InvalidInitialAdmin(address invalidAddress);
+    error AuthorityManager_LockedRole(uint64 roleId);
+    error AuthorityManager_AlreadyCastVote(address account);
+    error AuthorityManager_InvalidVoteType(); 
+    
+    /* State variables */
     mapping(uint256 proposalId => ProposalVote) public _proposalVotes;
     mapping(uint64 roleId => Role) public roles;   
     
     uint64 public constant ADMIN_ROLE = type(uint64).min; // == 0
     uint64 public constant PUBLIC_ROLE = type(uint64).max; // == 0
     uint256 constant DENOMINATOR = 100;
-    
+
+    /* Events */
+    /**
+     * @dev Emitted when a role is set.
+     */
+    event RoleSet(uint64 indexed roleId, address indexed account, bool indexed accessChanged); 
+
+
+    //////////////////////////////
+    //          FUNCTIONS       //
+    //////////////////////////////
+    /* external */
+
+    /* public */
     /**
     * @dev see {IAuthoritiesManager.setRole}
     */
@@ -29,6 +50,7 @@ contract AuthoritiesManager is IAuthoritiesManager {
         _setRole(roleId, account, access);
     }
 
+    /* internal */
     /**
      * @notice Internal version of {setRole} without access control. Returns true if the role was newly granted.
      *
@@ -54,23 +76,6 @@ contract AuthoritiesManager is IAuthoritiesManager {
 
         emit RoleSet(roleId, account, accessChanged);
         return accessChanged;
-    }
-
-    /**
-     * @dev see {IAuthoritiesManager.hasVoted}
-     */
-    function hasVoted(uint256 proposalId, address account) public view virtual returns (bool) {
-        return _proposalVotes[proposalId].hasVoted[account];
-    }
-
-    /**
-     * @dev see {IAuthoritiesManager.proposalVotes}
-     */
-    function proposalVotes(
-        uint256 proposalId
-    ) public view virtual returns (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) {
-        ProposalVote storage proposalVote = _proposalVotes[proposalId];
-        return (proposalVote.againstVotes, proposalVote.forVotes, proposalVote.abstainVotes);
     }
 
     /**
@@ -102,7 +107,24 @@ contract AuthoritiesManager is IAuthoritiesManager {
         }
     }
 
-    /* internal & private view & pure functions */
+    /* external & public view & pure functions */
+    /**
+     * @dev see {IAuthoritiesManager.hasVoted}
+     */
+    function hasVoted(uint256 proposalId, address account) public view virtual returns (bool) {
+        return _proposalVotes[proposalId].hasVoted[account];
+    }
+
+    /**
+     * @dev see {IAuthoritiesManager.proposalVotes}
+     */
+    function proposalVotes(
+        uint256 proposalId
+    ) public view virtual returns (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) {
+        ProposalVote storage proposalVote = _proposalVotes[proposalId];
+        return (proposalVote.againstVotes, proposalVote.forVotes, proposalVote.abstainVotes);
+    }
+
     /**
      * @dev see {IAuthoritiesManager.hasRoleSince}
      */
@@ -110,7 +132,7 @@ contract AuthoritiesManager is IAuthoritiesManager {
       return roles[roleId].members[account]; 
     }
 
-    function getAmountMembers(uint64 roleId) public returns (uint256 amountMembers) {
+    function getAmountMembers(uint64 roleId) public view returns (uint256 amountMembers) {
       return roles[roleId].amountMembers; 
     }
 

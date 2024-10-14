@@ -8,8 +8,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  *  
  */
 contract AgCoins is ERC20 {
-  constructor() ERC20("AgCoins", "AGC") {
-        _mint(msg.sender, type(uint256).max);
+  constructor(address agDao_) ERC20("AgCoins", "AGC") {
+        _mint(agDao_, type(uint256).max);
   }
-
 }
