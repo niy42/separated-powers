@@ -66,7 +66,7 @@ contract Senior_reinstateMember is Law {
       }
 
       // step 4: complete the proposal. 
-      SeparatedPowers(payable(agDao)).complete(proposalId);
+      SeparatedPowers(payable(agDao)).complete(lawCalldata, descriptionHash);
 
       // step 5: creating data to send to the execute function of agDAO's SepearatedPowers contract.
       address[] memory targets = new address[](3);
@@ -90,6 +90,6 @@ contract Senior_reinstateMember is Law {
 
       // step 6: call {SeparatedPowers.execute}
       // note, call goes in following format: (address proposer, bytes memory lawCalldata, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
-      SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
+      SeparatedPowers(daoCore).execute(msg.sender, targets, values, calldatas);
   }
 }

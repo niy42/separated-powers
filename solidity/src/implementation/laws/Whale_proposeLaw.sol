@@ -3,6 +3,8 @@ pragma solidity 0.8.26;
 
 import {Law} from "../../Law.sol";
 import {SeparatedPowers} from "../../SeparatedPowers.sol";
+import {ISeparatedPowers} from "../../interfaces/ISeparatedPowers.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @notice Example Law contract. 
@@ -53,7 +55,7 @@ contract Whale_proposeLaw is Law {
       }
 
       // step 3: set proposal to completed. 
-      SeparatedPowers(payable(agDao)).complete(proposalId);
+      SeparatedPowers(payable(agDao)).complete(lawCalldata, descriptionHash);
 
       // step 4: creating data to send to the execute function of agDAO's SepearatedPowers contract.
       address[] memory targets = new address[](1);
@@ -66,6 +68,6 @@ contract Whale_proposeLaw is Law {
 
       // step 5: call {SeparatedPowers.execute}
       // note, call goes in following format: (address proposer, bytes memory lawCalldata, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
-      SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
+      SeparatedPowers(daoCore).execute(msg.sender, targets, values, calldatas);
   }
 }

@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import {Law} from "../../Law.sol";
 import {SeparatedPowers} from "../../SeparatedPowers.sol";
+import {ISeparatedPowers} from "../../interfaces/ISeparatedPowers.sol";
 
 /**
  * @notice Example Law contract. 
@@ -14,6 +15,7 @@ import {SeparatedPowers} from "../../SeparatedPowers.sol";
 contract Senior_assignRole is Law {
     error Senior_assignRole__AlreadySenior();
     error Senior_assignRole__TooManySeniors();
+    error Senior_assignRole__ProposalVoteNotPassed(uint256 proposalId);
 
     address public agCoins; 
     address public agDao;
@@ -59,11 +61,11 @@ contract Senior_assignRole is Law {
       // step 3: check if vote for this proposal has succeeded. 
       uint256 proposalId = hashProposal(address(this), lawCalldata, descriptionHash);
       if (SeparatedPowers(payable(agDao)).state(proposalId) != ISeparatedPowers.ProposalState.Succeeded) {
-        revert Senior_assignRole__ProposalNotExecuted(proposalId);
+        revert Senior_assignRole__ProposalVoteNotPassed(proposalId);
       }
 
       // step 4: set proposal to completed.
-      SeparatedPowers(payable(agDao)).complete(proposalId);
+      SeparatedPowers(payable(agDao)).complete(lawCalldata, descriptionHash);
 
       // step 5: creating data to send to the execute function of agDAO's SepearatedPowers contract.
       address[] memory targets = new address[](1);
@@ -77,6 +79,6 @@ contract Senior_assignRole is Law {
 
       // step 7: call {SeparatedPowers.execute}
       // note, call goes in following format: (address proposer, bytes memory lawCalldata, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
-      SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
+      SeparatedPowers(daoCore).execute(msg.sender, targets, values, calldatas);
   }
 }

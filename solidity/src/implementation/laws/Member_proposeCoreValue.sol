@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import {Law} from "../../Law.sol";
 import {SeparatedPowers} from "../../SeparatedPowers.sol";
+import {ISeparatedPowers} from "../../interfaces/ISeparatedPowers.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ShortStrings.sol";
 
@@ -63,7 +64,7 @@ contract Member_proposeCoreValue is Law {
       }
 
       // step 3: set Proposal to completed
-      SeparatedPowers(payable(agDao)).complete(proposalId);
+      SeparatedPowers(payable(agDao)).complete(lawCalldata, descriptionHash);
       // step3a: emit an additional event stating the proposed value. 
       emit Member_proposeCoreValue(proposalId, coreValue, descriptionHash); 
 
@@ -79,7 +80,7 @@ contract Member_proposeCoreValue is Law {
       // step 5: call {SeparatedPowers.execute}
       // note at this point _nothing_ happens with the agDAOs requirements. 
       // note call goes in following format: (address proposer, bytes memory lawCalldata, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
-      SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
+      SeparatedPowers(daoCore).execute(msg.sender, targets, values, calldatas);
 
       
   }

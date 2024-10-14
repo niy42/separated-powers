@@ -2,6 +2,8 @@
 pragma solidity 0.8.26;
 
 import {Law} from "../../Law.sol";
+import {SeparatedPowers} from "../../SeparatedPowers.sol";
+import {ISeparatedPowers} from "../../interfaces/ISeparatedPowers.sol";
 
 /**
  * @notice Example Law contract. 
@@ -12,7 +14,7 @@ import {Law} from "../../Law.sol";
  */
  contract Admin_setLaw is Law {
     error Senior_acceptProposedLaw__ParentProposalNotExecuted(uint256 parentProposalId); 
-    error Senior_acceptProposedLaw__ProposalNotExecuted(proposalId); 
+    error Senior_acceptProposedLaw__ProposalNotExecuted(uint256 proposalId); 
 
     address public agDao;  
     
@@ -62,7 +64,7 @@ import {Law} from "../../Law.sol";
 
       // step 5: call {SeparatedPowers.execute}
       // note, call goes in following format: (address proposer, bytes memory lawCalldata, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
-      SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
-      
+      SeparatedPowers(daoCore).execute(msg.sender, targets, values, calldatas);
+
   }
 }

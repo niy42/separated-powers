@@ -63,6 +63,6 @@ contract Member_assignRole is Law {
 
       // step 4: call {SeparatedPowers.execute}
       // note, call goes in following format: (address proposer, bytes memory lawCalldata, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
-      SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
+      SeparatedPowers(daoCore).execute(msg.sender, targets, values, calldatas);
   }
 }

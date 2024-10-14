@@ -73,7 +73,7 @@ contract Member_challengeRevoke is Law {
       }
 
       // step 6: set the proposal to executed.
-      SeparatedPowers(payable(agDao)).complete(proposalId);
+      SeparatedPowers(payable(agDao)).complete(lawCalldata, descriptionHash);
 
       // Note this 'executeLaw' function does not have a call to the execute function of the coreDA) contract. 
       // In this case the only important thing is that a complaint is logged in the form of a proposal that automatically succeeds because the quorum is set to 0 and can be executed.

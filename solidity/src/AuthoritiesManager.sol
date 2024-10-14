@@ -106,7 +106,7 @@ contract AuthoritiesManager is IAuthoritiesManager {
     /**
      * @dev see {IAuthoritiesManager.hasRoleSince}
      */
-    function hasRoleSince(address account, uint64 roleId) public returns (uint48 since) {
+    function hasRoleSince(address account, uint64 roleId) public view returns (uint48 since) {
       return roles[roleId].members[account]; 
     }
 

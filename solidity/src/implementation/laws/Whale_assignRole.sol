@@ -73,12 +73,12 @@ abstract contract Whale_assignRole is Law {
       // 5a: option 1: if accountToCheck is a whale but has fewer tokens than the minimum. Role is revoked. 
       if (balanceAccount < amountTokensForWhaleRole && since != 0) {
         calldatas[0] = abi.encodeWithSelector(0xd2ab9970, 1, accountToAssess, false); // = setRole(uint64 roleId, address account, bool access); 
-        SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
+        SeparatedPowers(daoCore).execute(msg.sender, targets, values, calldatas);
       } 
       // 5b: option 2: if accountToCheck is not a whale but has more tokens than the minimum. Role is assigned. 
       else if (balanceAccount >= amountTokensForWhaleRole && since == 0) {
         calldatas[0] = abi.encodeWithSelector(0xd2ab9970, 0, accountToAssess, true); // = setRole(uint64 roleId, address account, bool access); 
-        SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
+        SeparatedPowers(daoCore).execute(msg.sender, targets, values, calldatas);
       } else {
         revert Whale_assignRole__Error();
       }
