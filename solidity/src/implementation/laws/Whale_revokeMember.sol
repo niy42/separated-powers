@@ -66,7 +66,7 @@ contract Whale_revokeMember is Law {
       // action 2: add account to blacklist 
       targets[1] = agDao;
       values[1] = 0;
-      calldatas[1] = abi.encodeWithSelector(0xd37b34d7, memberToRevoke); // = blacklistAccount(address account);
+      calldatas[1] = abi.encodeWithSelector(0xe594707e, memberToRevoke, true); // = blacklistAccount(address account, bool isBlacklisted);
 
       // action 3: give proposer reward.  
       targets[2] = agCoins;

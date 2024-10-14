@@ -35,8 +35,8 @@ contract AgDAO is SeparatedPowers {
     coreRequirements.pop();
   }
 
-  function blacklistAccount(address account) public onlySeparatedPowers {
-    blacklistedAccounts[account] = true;
+  function setBlacklistAccount(address account, bool isBlackListed) public onlySeparatedPowers {
+    blacklistedAccounts[account] = isBlackListed;
   }
 
   function isAccountBlacklisted(address account) public returns (bool) {

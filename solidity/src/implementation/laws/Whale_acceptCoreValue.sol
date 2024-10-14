@@ -49,6 +49,9 @@ contract Whale_acceptCoreValue is Law {
         revert Law__AccessNotAuthorized(msg.sender);
       }
 
+      // step 1: check if proposal has passed. 
+      // £TODO. This has to be done inside the law, right? 
+
       // step 1: decode the calldata. Note: lawCalldata can have any format. 
       (ShortString requirement, bytes32 descriptionHash) =
             abi.decode(lawCalldata, (ShortString, bytes32));
@@ -58,10 +61,7 @@ contract Whale_acceptCoreValue is Law {
         uint256 parentProposalId = hashProposal(parentLaw, lawCalldata, descriptionHash); 
         ISeparatedPowers.ProposalState parentState = SeparatedPowers(payable(agDao)).state(parentProposalId);
 
-        if (
-          parentState != ISeparatedPowers.ProposalState.Executed || 
-          parentState != ISeparatedPowers.ProposalState.Succeeded
-          ) {
+        if ( parentState != ISeparatedPowers.ProposalState.Executed ) {
           revert Law__TargetLawNotPassed(parentLaw);
         }
       } else {
