@@ -51,17 +51,17 @@ contract Member_challengeRevoke is Law {
         revert Member_challengeRevoke__IncorrectRequiredStatement();
       }
 
-      // step 3: check if the proposal has been executed.
-      // Note: even though this law does not need a vote, it DOES need a proposal and needs to be executed by the member challenging the expulsion decision. 
-      // This is because the propotocol needs the (executed) proposal to start the governance process that can reinstate this member. 
+      // step 3: check if the proposal has succeeded.
+      // Note: even though this law does not need a vote, it DOES need a proposal that has (automatically) succeeded. 
+      // This is because the propotocol needs the (succeeded) proposal to start the governance process that can reinstate this member. 
       uint256 proposalId = hashProposal(address(this), lawCalldata, descriptionHash);
-      if (SeparatedPowers(payable(agDao)).state(proposalId) != ISeparatedPowers.ProposalState.Executed) {
+      if (SeparatedPowers(payable(agDao)).state(proposalId) != ISeparatedPowers.ProposalState.Succeeded) {
         revert Member_challengeRevoke__ProposalNotExecuted(proposalId);
       }
 
       // step 4: check if the parent proposal has been executed.
       uint256 parentProposalId = hashProposal(parentLaw, revokeCalldata, revokeDescriptionHash);
-      if (SeparatedPowers(payable(agDao)).state(parentProposalId) != ISeparatedPowers.ProposalState.Executed) {
+      if (SeparatedPowers(payable(agDao)).state(parentProposalId) != ISeparatedPowers.ProposalState.Completed) {
         revert Member_challengeRevoke__ParentProposalNotExecuted(proposalId);
       }
 
@@ -71,6 +71,9 @@ contract Member_challengeRevoke is Law {
       if (revokedMember != msg.sender) {
         revert Member_challengeRevoke__MemberNotMsgSender();
       }
+
+      // step 6: set the proposal to executed.
+      SeparatedPowers(payable(agDao)).complete(proposalId);
 
       // Note this 'executeLaw' function does not have a call to the execute function of the coreDA) contract. 
       // In this case the only important thing is that a complaint is logged in the form of a proposal that automatically succeeds because the quorum is set to 0 and can be executed.

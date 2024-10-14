@@ -11,28 +11,27 @@ import {SeparatedPowers} from "../../SeparatedPowers.sol";
  *
  *  
  */
-contract Senior_assignRole is Law {
-    error Senior_assignRole__AlreadySenior();
-    error Senior_assignRole__TooManySeniors();
+contract Senior_acceptProposedLaw is Law {
+  error Senior_acceptProposedLaw__ParentProposalNotExecuted(uint256 parentProposalId); 
+  error Senior_acceptProposedLaw__ProposalNotExecuted(proposalId); 
 
-    address public agCoins; 
-    address public agDao;
-    uint256 agCoinsReward = 150_000;
-    uint256 maxNumberOfSeniors = 10;
+    address public agCoins;
+    address public agDao;  
+    uint256 agCoinsReward = 12_000;  
     
-    constructor(address payable agDao_, address agCoins_) // can take a address parentLaw param. 
+    constructor(address payable agDao_, address agCoins_, address Whale_proposeLaw) // can take a address parentLaw param. 
       Law(
-        "Senior_assignRole", // = name
-        "Seniors can assign accounts to availabke senior role. A maximum of ten holders can be assigned. If passed the proposer receives a reward in agCoins", // = description
-        1, // = access senior
+        "Senior_acceptProposedLaw", // = name
+        "Seniors can accept to activate or deactive laws as propised by whales.", // = description
+        1, // = access roleId = senior 
         agDao_, // = SeparatedPower.sol derived contract. Core of protocol.   
-        50, // = quorum 
-        66, // = succeedAt
+        30, // = quorum
+        100, // = succeedAt
         3_600, // votingPeriod_ in blocks, On arbitrum each block is about .5 (half) a second. This is about half an hour. 
-        address(0) // = parent Law 
+        Whale_proposeLaw // = parent Law 
     ) {
       agDao = agDao_;
-      agCoins = agCoins_; 
+      agCoins = agCoins_;
     } 
 
     function executeLaw(
@@ -45,24 +44,22 @@ contract Senior_assignRole is Law {
       }
 
       // step 1: decode the calldata. Note: lawCalldata can have any format. 
-      (address newSenior, bytes32 descriptionHash) = abi.decode(lawCalldata, (address, bytes32));
+      (address law, bool toInclude, bytes32 parentDescriptionHash, bytes32 descriptionHash) =
+            abi.decode(lawCalldata, (address, bool, bytes32, bytes32));
 
-      // step 2: check if newSenior is already a member and if the maximum amount of seniors has already been met.  
-      if (SeparatedPowers(payable(agDao)).hasRoleSince(newSenior, accessRole) != 0) {
-        revert Senior_assignRole__AlreadySenior();
-      }
-      uint256 amountSeniors = SeparatedPowers(payable(agDao)).getAmountMembers(1);
-      if (amountSeniors >= maxNumberOfSeniors) {
-        revert Senior_assignRole__TooManySeniors();
+      // step 2: check if parent proposal has been executed. 
+      uint256 parentProposalId = hashProposal(parentLaw, abi.encode(law, toInclude), parentDescriptionHash);
+      if (SeparatedPowers(payable(agDao)).state(parentProposalId) != ISeparatedPowers.ProposalState.Completed) {
+        revert Senior_acceptProposedLaw__ParentProposalNotExecuted(parentProposalId);
       }
 
       // step 3: check if vote for this proposal has succeeded. 
       uint256 proposalId = hashProposal(address(this), lawCalldata, descriptionHash);
       if (SeparatedPowers(payable(agDao)).state(proposalId) != ISeparatedPowers.ProposalState.Succeeded) {
-        revert Senior_assignRole__ProposalNotExecuted(proposalId);
+        revert Senior_acceptProposedLaw__ProposalNotExecuted(proposalId);
       }
 
-      // step 4: set proposal to completed.
+      // step 4: complete the proposal. 
       SeparatedPowers(payable(agDao)).complete(proposalId);
 
       // step 5: creating data to send to the execute function of agDAO's SepearatedPowers contract.
@@ -70,12 +67,11 @@ contract Senior_assignRole is Law {
       uint256[] memory values = new uint256[](1); 
       bytes[] memory calldatas = new bytes[](1);
 
-      // 6: action: add membership role to applicant. 
-      targets[0] = agDao;
+      targets[0] = agCoins;
       values[0] = 0;
-      calldatas[0] = abi.encodeWithSelector(0xd2ab9970, 1, newSenior, true); // = setRole(uint64 roleId, address account, bool access); 
+      calldatas[0] = abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, agCoinsReward);
 
-      // step 7: call {SeparatedPowers.execute}
+      // step 6: call {SeparatedPowers.execute}
       // note, call goes in following format: (address proposer, bytes memory lawCalldata, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
       SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
   }

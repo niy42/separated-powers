@@ -112,11 +112,11 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     function state(uint256 proposalId) public view virtual returns (ProposalState) {
         // We read the struct fields into the stack at once so Solidity emits a single SLOAD
         ProposalCore storage proposal = _proposals[proposalId];
-        bool proposalExecuted = proposal.executed;
+        bool proposalCompleted = proposal.completed;
         bool proposalCancelled = proposal.cancelled;
 
-        if (proposalExecuted) {
-            return ProposalState.Executed;
+        if (proposalCompleted) {
+            return ProposalState.Completed;
         }
         if (proposalCancelled) {
             return ProposalState.Cancelled;
@@ -208,44 +208,31 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
 
     /**
      * @dev see {ISeperatedPowers.execute}
+     * 
+     * Note any reference to proposal (as in OpenZeppelin's Governor.sol) are removed. 
+     * The mechanism of SeparatedPowers detaches proposals from execution logic. 
+     * Instead, proposal checks are, placed in the {complete} funciton.)
      */
     function execute(
-        address proposer,  
-        bytes memory lawCalldata, 
+        address executioner,  
         address[] memory targets,
         uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) public payable virtual returns (uint256) {
-      // very first check: is call from an active law? 
+        bytes[] memory calldatas
+    ) public payable virtual returns (bool) {
+        // check 1: is call from an active law? 
         if (!activeLaws[msg.sender]) {
             revert SeparatedPowers__ExecuteCallNotFromActiveLaw(); 
         }
 
+        // check 2: does executioner have access to law being executed? 
         uint64 accessRole = Law(msg.sender).accessRole(); 
-        if (roles[accessRole].members[proposer] == 0 && accessRole != PUBLIC_ROLE) {
+        if (roles[accessRole].members[executioner] == 0 && accessRole != PUBLIC_ROLE) {
             revert SeparatedPowers__AccessDenied();
         } 
 
-        uint256 proposalId = hashProposal(msg.sender, lawCalldata, descriptionHash);
-        if (_proposals[proposalId].proposer == address(0)) {
-            revert SeparatedPowers__InvalidProposalId(); 
-        }
-        if (_proposals[proposalId].executed == true) {
-            revert SeparatedPowers__ProposalAlreadyExecuted(); 
-        }
-        if (_proposals[proposalId].cancelled == true) {
-            revert SeparatedPowers__ProposalCancelled(); 
-        }
-     
-      // mark as executed before calls to avoid reentrancy
-      _proposals[proposalId].executed = true;
+        // if checks pass: execute.
+        _executeOperations(targets, values, calldatas);
 
-      _executeOperations(proposalId, targets, values, calldatas, descriptionHash);
-
-      emit ProposalExecuted(proposalId);
-
-      return proposalId;
     }
 
     /**
@@ -256,16 +243,43 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
      * true or emit the `ProposalExecuted` event. Executing a proposal should be done using {execute} or {_execute}.
      */
     function _executeOperations(
-        uint256 /* proposalId */,
         address[] memory targets,
         uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 /*descriptionHash*/
+        bytes[] memory calldatas
     ) internal virtual {
         for (uint256 i = 0; i < targets.length; ++i) {
             (bool success, bytes memory returndata) = targets[i].call{value: values[i]}(calldatas[i]);
             Address.verifyCallResult(success, returndata);
         }
+    }
+
+    function complete(
+        bytes memory lawCalldata,
+        string memory descriptionHash, 
+        ) public virtual {
+
+        uint256 proposalId = hashProposal(msg.sender, lawCalldata, descriptionHash);
+
+        // check 1: is call from an active law? 
+        if (!activeLaws[msg.sender]) {
+            revert SeparatedPowers__ExecuteCallNotFromActiveLaw(); 
+        }
+        // check 2: does proposal exist?  
+        if (_proposals[proposalId].proposer == address(0)) {
+                revert Law__InvalidProposalId(); 
+        }
+        // check 3: is proposal already completed?
+        if (_proposals[proposalId].completed == true) {
+            revert Law__ProposalAlreadyCompleted(); 
+        }
+        // check 4: is proposal cancelled?
+        if (_proposals[proposalId].cancelled == true) {
+            revert Law__ProposalCancelled(); 
+        }
+
+        // if checks pass: complete & emit event.
+        _proposals[proposalId].completed = true; 
+        emit ProposalCompleted(proposalId);
     }
 
     /**

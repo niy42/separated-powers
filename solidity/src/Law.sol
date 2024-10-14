@@ -29,6 +29,9 @@ contract Law is IERC165, ERC165, EIP712, ILaw {
   error Law__CallNotImplemented(); 
   error Law__InvalidLengths(uint256 lengthTargets, uint256 lengthCalldatas); 
   error Law__TargetLawNotPassed(address targetLaw);
+  error Law__InvalidProposalId(uint256 proposalId);  
+  error Law__ProposalAlreadyExecuted(uint256 proposalId);
+  error Law__ProposalCancelled(uint256 proposalId);
 
   string private _nameFallback;
 
@@ -86,43 +89,7 @@ contract Law is IERC165, ERC165, EIP712, ILaw {
   function executeLaw(
     bytes memory lawCalldata
     ) external virtual {  
-      
       revert Law__CallNotImplemented(); // acts as a blocker so that the function will not get executed.
-      
-      /* everything below is an example of how to implement laws. */   
-
-      // step 0: check if caller has correct access control.
-      // if (SeparatedPowers(payable(separatedPowers)).hasRoleSince(msg.sender, accessRole) == 0) {
-      //   revert Law__AccessNotAuthorized(msg.sender);
-      // }
-
-      // // step 1: decode the calldata.
-      // // Note: lawCalldata can have any format. 
-      // (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
-      //      abi.decode(lawCalldata, (address[], uint256[], bytes[], bytes32));
-
-      // // step 2 : check lengths.
-      // if (targets.length != calldatas.length || targets.length == 0) {
-      //   revert Law__InvalidLengths(targets.length, calldatas.length);
-      // }
-
-      // // Note step 3: if a parentLaw is exists, check if the parentLaw has succeeded or has executed.
-      // if (parentLaw != address(0)) {
-      //   uint256 parentProposalId = hashProposal(parentLaw, lawCalldata, descriptionHash); 
-      //   ISeparatedPowers.ProposalState parentState = SeparatedPowers(payable(separatedPowers)).state(parentProposalId);
-
-      //   if (
-      //     parentState != ISeparatedPowers.ProposalState.Executed || 
-      //     parentState != ISeparatedPowers.ProposalState.Succeeded
-      //     ) {
-      //     revert Law__TargetLawNotPassed(parentLaw);
-      //   }
-      // }
-
-      // // step 4: call {SeparatedPowers.execute}
-      // // note: a call to SeparatedPower.execute always has the same params: 
-      // // (uint256 /* proposalId */, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 /*descriptionHash*/)
-      // SeparatedPowers(separatedPowers).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
   }
 
   /**

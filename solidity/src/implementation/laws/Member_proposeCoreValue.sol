@@ -15,10 +15,18 @@ import "@openzeppelin/contracts/utils/ShortStrings.sol";
  *  
  */
 contract Member_proposeCoreValue is Law {
+    error Member_proposeCoreValue__ProposalVoteNotPassed(uint256 proposalId);
+    
     string private _name = "Member_proposeCoreValue"; 
     address public agCoins;
     address public agDao;  
     uint256 agCoinsReward = 100_000;  
+
+    event Member_proposeCoreValue(
+      uint256 proposalId,
+      ShortString indexed coreValue,
+      bytes32 descriptionHash
+    );
     
     constructor(address payable agDao_, address agCoins_) // can take a address parentLaw param. 
       Law(
@@ -44,11 +52,22 @@ contract Member_proposeCoreValue is Law {
         revert Law__AccessNotAuthorized(msg.sender);
       }
 
-      // step 1: decode the calldata. Note: lawCalldata can have any format. 
-      (ShortString requirement, bytes32 descriptionHash) =
+      // step 1: decode the calldata. Note: current unused parameters. 
+      (ShortString coreValue, bytes32 descriptionHash) =
             abi.decode(lawCalldata, (ShortString, bytes32));
 
-      // step 2 : creating data to send to the execute function of agDAO's SepearatedPowers contract.
+      // step 2: check if proposal passed vote.
+      uint256 proposalId = hashProposal(address(this), lawCalldata, descriptionHash);
+      if (SeparatedPowers(payable(agDao)).state(proposalId) != ISeparatedPowers.ProposalState.Succeeded) {
+        revert Member_proposeCoreValue__ProposalVoteNotPassed(proposalId);
+      }
+
+      // step 3: set Proposal to completed
+      SeparatedPowers(payable(agDao)).complete(proposalId);
+      // step3a: emit an additional event stating the proposed value. 
+      emit Member_proposeCoreValue(proposalId, coreValue, descriptionHash); 
+
+      // step 4 : creating data to send to the execute function of agDAO's SepearatedPowers contract.
       address[] memory targets = new address[](1);
       uint256[] memory values = new uint256[](1); 
       bytes[] memory calldatas = new bytes[](1);
@@ -57,9 +76,11 @@ contract Member_proposeCoreValue is Law {
       values[0] = 0;
       calldatas[0] = abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, agCoinsReward);
 
-      // step 3: call {SeparatedPowers.execute} If reuiqrement is accepted, member will get an amount of agCoins. 
-      // note: at this point _nothing_ happens with the agDAOs requirements. 
-      // note, call goes in following format: (address /* proposer */, bytes memory /* lawCalldata */, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 /*descriptionHash*/)
+      // step 5: call {SeparatedPowers.execute}
+      // note at this point _nothing_ happens with the agDAOs requirements. 
+      // note call goes in following format: (address proposer, bytes memory lawCalldata, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
       SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
+
+      
   }
 }

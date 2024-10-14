@@ -25,7 +25,7 @@ abstract contract Whale_assignRole is Law {
     constructor(address payable agDao_, address agCoins_) // can take a address parentLaw param. 
       Law(
         "Whale_assignRole", // = name
-        "Whales can assign or revoke whale roles, according to the agCoins an account hold. If a change has been applied, the proposer will receive a reward.", // = description
+        "Whales can assign or revoke whale roles, according to the agCoins an account hold. If a change has been applied, the executioner will receive a reward.", // = description
         2, // = access Whale
         agDao_, // = SeparatedPower.sol derived contract. Core of protocol.   
         0, // = no quorum, means no vote. 
@@ -53,26 +53,29 @@ abstract contract Whale_assignRole is Law {
       uint256 balanceAccount = ERC20(agCoins).balanceOf(accountToAssess);
       uint48 since = SeparatedPowers(payable(agDao)).hasRoleSince(accountToAssess, accessRole);
 
-      // step 3: set data structure for call to execute function.
+      // step 3: Note that check for proposal to have passed & setting proposal as completed is missing. This action can be executed without setting a proposal or passing a vote.  
+
+      // step 4: set data structure for call to execute function.
       address[] memory targets = new address[](2);
       uint256[] memory values = new uint256[](2); 
       bytes[] memory calldatas = new bytes[](2);
-      // action 1: conditional assign or revoke role. 
+      
+      // 4a: action 1: conditional assign or revoke role. 
       targets[0] = agDao;
       values[0] = 0;
 
-      // action 2: give reward to proposer of proposal. 
+      // 4b:action 2: give reward to proposer of proposal. 
       targets[1] = agCoins;
       values[1] = 0;
       calldatas[1] = abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, agCoinsReward);
 
-      //step 4: conditionally execute call. 
-      // option 1: if accountToCheck is a whale but has fewer tokens than the minimum. Role is revoked. 
+      //step 5: conditionally execute call. 
+      // 5a: option 1: if accountToCheck is a whale but has fewer tokens than the minimum. Role is revoked. 
       if (balanceAccount < amountTokensForWhaleRole && since != 0) {
         calldatas[0] = abi.encodeWithSelector(0xd2ab9970, 1, accountToAssess, false); // = setRole(uint64 roleId, address account, bool access); 
         SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
       } 
-      // option 2: if accountToCheck is not a whale but has more tokens than the minimum. Role is assigned. 
+      // 5b: option 2: if accountToCheck is not a whale but has more tokens than the minimum. Role is assigned. 
       else if (balanceAccount >= amountTokensForWhaleRole && since == 0) {
         calldatas[0] = abi.encodeWithSelector(0xd2ab9970, 0, accountToAssess, true); // = setRole(uint64 roleId, address account, bool access); 
         SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);

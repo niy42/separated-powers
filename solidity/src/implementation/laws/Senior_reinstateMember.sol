@@ -54,39 +54,42 @@ contract Senior_reinstateMember is Law {
 
       // step 2: check if the proposalIdChallenge has been executed.
       ISeparatedPowers.ProposalState stateChallenge = SeparatedPowers(payable(agDao)).state(proposalIdChallenge);
-      if (stateChallenge != ISeparatedPowers.ProposalState.Executed ) {
+      if (stateChallenge != ISeparatedPowers.ProposalState.Completed ) {
         revert Senior_reinstateMember__TargetProposalNotPassed(proposalIdChallenge);
       }
     
       // step 3: calculate proposalId and check if the proposal to reinstate member has passed.    
       uint256 proposalId = hashProposal(address(this), lawCalldata, descriptionHash); 
       ISeparatedPowers.ProposalState proposalState = SeparatedPowers(payable(agDao)).state(proposalId);
-      if ( proposalState != ISeparatedPowers.ProposalState.Executed ) {
+      if ( proposalState != ISeparatedPowers.ProposalState.Succeeded) {
         revert Senior_reinstateMember__ProposalNotPassed(proposalId);
       }
 
-      // step 4: creating data to send to the execute function of agDAO's SepearatedPowers contract.
+      // step 4: complete the proposal. 
+      SeparatedPowers(payable(agDao)).complete(proposalId);
+
+      // step 5: creating data to send to the execute function of agDAO's SepearatedPowers contract.
       address[] memory targets = new address[](3);
       uint256[] memory values = new uint256[](3); 
       bytes[] memory calldatas = new bytes[](3);
 
-      // 4a: action 1: give reward to proposer of proposal. 
+      // 5a: action 1: give reward to proposer of proposal. 
       targets[0] = agCoins;
       values[0] = 0;
       calldatas[0] = abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, agCoinsReward);
 
-      // 4b: action 2: re-assign account to member role.
+      // 5b: action 2: re-assign account to member role.
       targets[1] = agDao;
       values[1] = 0;
       calldatas[1] = abi.encodeWithSelector(0xd2ab9970, 3, revokedMember, true); // = setRole(uint64 roleId, address account, bool access); 
 
-      // 4c: action 3: remove account from blacklist.
+      // 5c: action 3: remove account from blacklist.
       targets[2] = agDao;
       values[2] = 0;
       calldatas[2] = abi.encodeWithSelector(0xe594707e, revokedMember, false); // = blacklistAccount(address account, bool isBlacklisted);
 
-      // step 5: call {SeparatedPowers.execute} If reuiqrement is accepted, whale will get an amount of agCoins and new requirement will be included in the agDAO. 
-      // note, call goes in following format: (address /* proposer */, bytes memory /* lawCalldata */, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 /*descriptionHash*/)
+      // step 6: call {SeparatedPowers.execute}
+      // note, call goes in following format: (address proposer, bytes memory lawCalldata, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
       SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
   }
 }

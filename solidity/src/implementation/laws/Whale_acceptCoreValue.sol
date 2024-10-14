@@ -19,7 +19,9 @@ import "@openzeppelin/contracts/utils/ShortStrings.sol";
  *  
  */
 contract Whale_acceptCoreValue is Law {
-    error Whale_acceptCoreValue__TargetLawNotSet(); 
+    error Whale_acceptCoreValue__ParentLawNotSet(); 
+    error Whale_acceptCoreValue__ParentProposalnotSucceededOrExecuted(uint256 parentProposalId);
+    error Whale_acceptCoreValue__ProposalVoteNotPassed(uint256 proposalId); 
 
     address public agCoins; 
     address public agDao;
@@ -49,9 +51,6 @@ contract Whale_acceptCoreValue is Law {
         revert Law__AccessNotAuthorized(msg.sender);
       }
 
-      // step 1: check if proposal has passed. 
-      // £TODO. This has to be done inside the law, right? 
-
       // step 1: decode the calldata. Note: lawCalldata can have any format. 
       (ShortString requirement, bytes32 descriptionHash) =
             abi.decode(lawCalldata, (ShortString, bytes32));
@@ -61,30 +60,40 @@ contract Whale_acceptCoreValue is Law {
         uint256 parentProposalId = hashProposal(parentLaw, lawCalldata, descriptionHash); 
         ISeparatedPowers.ProposalState parentState = SeparatedPowers(payable(agDao)).state(parentProposalId);
 
-        if ( parentState != ISeparatedPowers.ProposalState.Executed ) {
-          revert Law__TargetLawNotPassed(parentLaw);
+        if ( parentState != ISeparatedPowers.ProposalState.Completed ) {
+          revert Whale_acceptCoreValue__ParentProposalnotSucceededOrExecuted(parentProposalId);
         }
       } else {
-        revert Whale_acceptCoreValue__TargetLawNotSet();
+        revert Whale_acceptCoreValue__ParentLawNotSet();
       }
 
-      // step 3 : creating data to send to the execute function of agDAO's SepearatedPowers contract.
+      // step 3: check if the proposal has passed. 
+      uint256 proposalId = hashProposal(address(this), lawCalldata, descriptionHash);
+      ISeparatedPowers.ProposalState proposalState = SeparatedPowers(payable(agDao)).state(proposalId);
+      if ( proposalState != ISeparatedPowers.ProposalState.Succeeded) {
+        revert Whale_acceptCoreValue__ProposalVoteNotPassed(proposalId);
+      }
+
+      // step 4: complete the proposal. 
+      SeparatedPowers(payable(agDao)).complete(proposalId);
+
+      // step 5 : creating data to send to the execute function of agDAO's SepearatedPowers contract.
       address[] memory targets = new address[](2);
       uint256[] memory values = new uint256[](2); 
       bytes[] memory calldatas = new bytes[](2);
 
-      // action 1: give reward to proposer of proposal. 
+      // 5a: action 1: give reward to proposer of proposal. 
       targets[0] = agCoins;
       values[0] = 0;
       calldatas[0] = abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, agCoinsReward);
 
-      // action 2: add requirement to agDAO. 
+      // 5b: action 2: add requirement to agDAO. 
       targets[1] = agDao;
       values[1] = 0;
       calldatas[1] = abi.encodeWithSelector(0x7be05842, requirement);
 
-      // step 4: call {SeparatedPowers.execute} If reuiqrement is accepted, whale will get an amount of agCoins and new requirement will be included in the agDAO. 
-      // note, call goes in following format: (address /* proposer */, bytes memory /* lawCalldata */, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 /*descriptionHash*/)
+      // step 6: call {SeparatedPowers.execute}
+      // note, call goes in following format: (address proposer, bytes memory lawCalldata, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
       SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
   }
 }

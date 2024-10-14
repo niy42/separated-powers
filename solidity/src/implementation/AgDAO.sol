@@ -23,7 +23,7 @@ contract AgDAO is SeparatedPowers {
     constitutionalLaws, // list of laws that will be active at initiation.
     constituentRoles // a list of accounts that will be assigned roles at initiation. // NB! I need to assign at least one account to Senior role - otherwise the DAO will not work.
     ) {
-      setRole(ADMIN_ROLE, msg.sender, true);
+      setRole(ADMIN_ROLE, msg.sender, true); // the account that initiates the DAO is set to admin. 
     } // this constructor should actually take constitutional laws. 
 
   function addRequirement(ShortString requirement) public onlySeparatedPowers {

@@ -53,28 +53,37 @@ contract Whale_revokeMember is Law {
         revert Whale_revokeMember__AccountIsNotMember();
       }
 
-      // if checks pass, step 3: creating data to send to the execute function of agDAO's SepearatedPowers contract.
+      // step 3: check if proposal passed vote.
+      uint256 proposalId = hashProposal(address(this), lawCalldata, descriptionHash);
+      if (SeparatedPowers(payable(agDao)).state(proposalId) != ISeparatedPowers.ProposalState.Succeeded) {
+        revert Whale_revokeMember__ProposalVoteNotPassed(proposalId);
+      }
+
+      // step 4: set proposal to completed. 
+      SeparatedPowers(payable(agDao)).complete(proposalId);
+
+      // step 5: creating data to send to the execute function of agDAO's SepearatedPowers contract.
       address[] memory targets = new address[](3);
       uint256[] memory values = new uint256[](3); 
       bytes[] memory calldatas = new bytes[](3);
 
-      // action 1: revoke membership role to applicant. 
+      // 5a: action 1: revoke membership role to applicant. 
       targets[0] = agDao;
       values[0] = 0;
       calldatas[0] = abi.encodeWithSelector(0xd2ab9970, 3, memberToRevoke, false); // = setRole(uint64 roleId, address account, bool access); 
 
-      // action 2: add account to blacklist 
+      // 5b: action 2: add account to blacklist 
       targets[1] = agDao;
       values[1] = 0;
       calldatas[1] = abi.encodeWithSelector(0xe594707e, memberToRevoke, true); // = blacklistAccount(address account, bool isBlacklisted);
 
-      // action 3: give proposer reward.  
+      // 5c: action 3: give proposer reward.  
       targets[2] = agCoins;
       values[2] = 0;
       calldatas[2] = abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, agCoinsReward);
 
-      // step 4: call {SeparatedPowers.execute} If reuiqrement is accepted, whale will get an amount of agCoins and new requirement will be included in the agDAO. 
-      // note, call goes in following format: (address /* proposer */, bytes memory /* lawCalldata */, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 /*descriptionHash*/)
-      SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
+      // step 6: call {SeparatedPowers.execute}
+      // note, call goes in following format: (address proposer, bytes memory lawCalldata, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+      uint256 proposalId = SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
     }
 }

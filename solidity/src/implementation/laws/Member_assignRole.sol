@@ -61,8 +61,8 @@ contract Member_assignRole is Law {
       values[0] = 0;
       calldatas[0] = abi.encodeWithSelector(0xd2ab9970, 3, msg.sender, true); // = setRole(uint64 roleId, address account, bool access); 
 
-      // step 4: call {SeparatedPowers.execute} If reuiqrement is accepted, whale will get an amount of agCoins and new requirement will be included in the agDAO. 
-      // note, call goes in following format: (address /* proposer */, bytes memory /* lawCalldata */, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 /*descriptionHash*/)
+      // step 4: call {SeparatedPowers.execute}
+      // note, call goes in following format: (address proposer, bytes memory lawCalldata, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
       SeparatedPowers(daoCore).execute(msg.sender, lawCalldata, targets, values, calldatas, descriptionHash);
   }
 }
