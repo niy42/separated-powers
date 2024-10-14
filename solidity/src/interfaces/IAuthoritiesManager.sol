@@ -7,12 +7,7 @@ pragma solidity 0.8.26;
  *
  */
 interface IAuthoritiesManager {
-    error AuthorityManager_NotAuthorized(address invalidAddress);
-    error AuthorityManager_InvalidInitialAdmin(address invalidAddress);
-    error AuthorityManager_LockedRole(uint64 roleId);
-    error AuthorityManager_AlreadyCastVote(address account);
-    error AuthorityManager_InvalidVoteType(); 
-    
+    /* Type declarations */
     /**
      * @dev Supported vote types. Matches Governor Bravo ordering.
      */
@@ -49,12 +44,7 @@ interface IAuthoritiesManager {
         address account; 
         uint64 roleId; 
     }
-    
-    
-    /**
-     * @dev Emitted when a role is set.
-     */
-    event RoleSet(uint64 indexed roleId, address indexed account, bool indexed accessChanged); 
+
 
     /**
      * @notice set role access.

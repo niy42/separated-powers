@@ -2,27 +2,14 @@
 pragma solidity 0.8.26;
 
 interface ISeparatedPowers { 
-    /* errors */
-    error SeparatedPowers__RestrictedProposer(); 
-    error SeparatedPowers__OnlySeparatedPowers(); 
-    error SeparatedPowers__AccessDenied(); 
-    error SeparatedPowers__UnexpectedProposalState(); 
-    error SeparatedPowers__InvalidProposalId(); 
-    error SeperatedPowers__NonexistentProposal(uint256 proposalId); 
-    error SeparatedPowers__InvalidProposalLength(uint256 targetsLength, uint256 calldatasLength); 
-    error SeparatedPowers__ProposalAlreadyExecuted(); 
-    error SeparatedPowers__ProposalCancelled(); 
-    error SeparatedPowers__ExecuteCallNotFromActiveLaw(); 
-    error SeparatedPowers__OnlyProposer(address caller); 
-    error SeparatedPowers__ProposalNotActive(); 
-    error SeparatedPowers__NoAccessToTargetLaw();
-
+    
+    /* Type declarations */
     enum ProposalState {
         Active,
         Cancelled,
         Defeated,
         Succeeded,
-        Executed
+        Completed
     }
 
     struct ProposalCore {
@@ -30,27 +17,71 @@ interface ISeparatedPowers {
         address targetLaw; 
         uint48 voteStart;
         uint32 voteDuration;
-        bool executed;
         bool cancelled;
+        bool completed;
     }
 
-    /* Events */
-    event SeparatedPowers__Initialized(address contractAddress);
-    event ProposalExecuted(uint256 indexed proposalId); 
-    event ProposalCancelled(uint256 indexed proposalId);
-    event VoteCast(address indexed account, uint256 indexed proposalId, uint8 indexed support, string reason);
-    event FundsReceived(uint256 value);  
-    event ProposalCreated(
-        uint256 proposalId,
-        address proposer,
+    /* external function */ 
+    /**
+     * @dev  
+     */
+    function propose(
         address targetLaw,
-        string signature,
-        bytes ececuteCalldata,
-        uint256 voteStart,
-        uint256 voteEnd,
-        string description
-    );
-    
+        bytes memory lawCalldata,
+        string memory description
+        ) external returns (uint256);
+
+    /**
+     * @dev
+     */
+    function execute(
+        address executioner, 
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas
+        ) external payable returns (bool); 
+
+    /**
+     * @dev
+     */
+    function complete(
+        bytes memory lawCalldata, 
+        bytes32 descriptionHash
+        ) external; 
+
+    /**
+     * @dev See {IGovernor-cancel}.
+     */
+    function cancel(
+        address targetLaw, 
+        bytes memory lawCalldata,
+        bytes32 descriptionHash
+        ) external returns (uint256); 
+
+    /**
+     * @dev See {IGovernor-castVote}.
+     */
+    function castVote(
+        uint256 proposalId, 
+        uint8 support
+        ) external returns (uint256); 
+
+    /**
+     * @dev See {IGovernor-castVoteWithReason}.
+     */
+    function castVoteWithReason(
+        uint256 proposalId,
+        uint8 support,
+        string calldata reason
+        ) external returns (uint256);
+
+    /* public */ 
+    /**
+     * @dev returns the State of a proposal. 
+     */
+    function state(uint256 proposalId) external returns (ProposalState);
+
+    /* public pure & view functions */  
     /**
      * @dev 
      */
@@ -60,6 +91,15 @@ interface ISeparatedPowers {
      * @dev
      */
     function version() external returns (string memory);
+
+    /**
+    * @notice checks if account can call a law.
+    *
+    * @param caller caller address
+    * @param targetLaw law address to check.
+    *
+    */
+    function canCallLaw(address caller, address targetLaw) external returns (bool); 
 
     /**
      * @dev 
@@ -78,68 +118,33 @@ interface ISeparatedPowers {
     ) external returns (uint256);
 
     /**
-     * @dev returns the State of a proposal. 
-     */
-    function state(uint256 proposalId) external returns (ProposalState);
-
-    /**
      * @dev See {IGovernor-proposalDeadline}.
      */
     function proposalDeadline(uint256 proposalId) external returns (uint256);
-    
-    /**
-     * @dev  
-     */
-    function propose(
-        address proposer,
-        address targetLaw,
-        bytes memory lawCalldata,
-        string memory description
-    ) external returns (uint256);
-
-    /**
-     * @dev
-     */
-    function execute(
-        address proposer, 
-        bytes memory lawCalldata, 
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) external payable returns (uint256); 
-
-
-    /**
-     * @dev See {IGovernor-cancel}.
-     */
-    function cancel(
-        address targetLaw, 
-        bytes memory lawCalldata,
-        bytes32 descriptionHash
-    ) external returns (uint256); 
-
-    /**
-     * @dev See {IGovernor-castVote}.
-     */
-    function castVote(uint256 proposalId, uint8 support) external returns (uint256); 
-
-    /**
-     * @dev See {IGovernor-castVoteWithReason}.
-     */
-    function castVoteWithReason(
-        uint256 proposalId,
-        uint8 support,
-        string calldata reason
-    ) external returns (uint256);
-
-    /**
-    * @notice checks if account can call a law.
-    *
-    * @param caller caller address
-    * @param targetLaw law address to check.
-    *
-    */
-    function canCallLaw(address caller, address targetLaw) external returns (bool canCall); 
 
 }
+
+
+// Structure contract //
+/* version */
+/* imports */
+/* errors */
+/* interfaces, libraries, contracts */
+/* Type declarations */
+/* State variables */
+/* Events */
+/* Modifiers */
+
+/* FUNCTIONS: */
+/* constructor */
+/* receive function */
+/* fallback function */
+/* external */
+/* public */
+/* internal */
+/* private */
+/* internal & private view & pure functions */
+/* external & public view & pure functions */
+/* helpers */
+/* complience */ // functions required for interactions with ERC standards 
+
