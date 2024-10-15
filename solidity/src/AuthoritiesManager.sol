@@ -22,7 +22,7 @@ contract AuthoritiesManager is IAuthoritiesManager {
     mapping(uint64 roleId => Role) public roles;   
     
     uint64 public constant ADMIN_ROLE = type(uint64).min; // == 0
-    uint64 public constant PUBLIC_ROLE = type(uint64).max; // == 0
+    uint64 public constant PUBLIC_ROLE = type(uint64).max; // == a lot 
     uint256 constant DENOMINATOR = 100;
 
     /* Events */

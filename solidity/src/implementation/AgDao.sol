@@ -7,7 +7,7 @@ import "../../lib/openzeppelin-contracts/contracts/utils/ShortStrings.sol";
 /**
  * @notice Example DAO contract based on the SeparatedPowers protocol.
  */
-contract AgDAO is SeparatedPowers {
+contract AgDao is SeparatedPowers {
   using ShortStrings for *;
 
   // naming uint64 roles at initiation. Optional.  
@@ -19,10 +19,10 @@ contract AgDAO is SeparatedPowers {
   mapping(address => bool) public blacklistedAccounts; // description of short strings. have to be shorter than 31 characters.
 
   constructor() SeparatedPowers(
-    'agDAO', // name of the DAO. 
+    'agDao' // name of the DAO. 
     ) {} 
 
-  // a few functions that are specific to the AgDAO.
+  // a few functions that are specific to the AgDao.
   function addRequirement(ShortString requirement) public onlySeparatedPowers {
     coreRequirements.push(requirement);
   }

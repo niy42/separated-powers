@@ -88,7 +88,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         string memory name_
         ) EIP712(name_, version()) { 
         _name = name_;
-        setRole(ADMIN_ROLE, msg.sender, true); // the account that initiates a SeparatedPowers contract is set to its admin.
+        _setRole(ADMIN_ROLE, msg.sender, true); // the account that initiates a SeparatedPowers contract is set to its admin.
 
         emit SeparatedPowers__Initialized(address(this));
     }
