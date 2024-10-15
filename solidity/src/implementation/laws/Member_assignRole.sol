@@ -51,6 +51,8 @@ contract Member_assignRole is Law {
         revert Member_assignRole__AccountBlacklisted();
       }
 
+      // NB: note, no check if a proposal has succeeded. This law can be called directly. 
+
       // step 3 : creating data to send to the execute function of agDAO's SepearatedPowers contract.
       address[] memory targets = new address[](1);
       uint256[] memory values = new uint256[](1); 

@@ -38,7 +38,7 @@ contract LawsManager is ILawsManager {
   * emits a LawSet event. 
   */
   function _setLaw(address law, bool active) internal virtual returns (bool lawChanged) { 
-    lawChanged = activeLaws[law] == active; 
+    lawChanged = (activeLaws[law] != active); 
     if (lawChanged) activeLaws[law] = active; 
 
     emit LawSet(law, active, lawChanged);
