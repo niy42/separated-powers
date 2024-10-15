@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Law} from "../../Law.sol";
 import {SeparatedPowers} from "../../SeparatedPowers.sol";
-import {AgDAO} from "../AgDAO.sol";
+import {AgDao} from "../AgDao.sol";
 
 /**
  * @notice Example Law contract. 
@@ -47,9 +47,11 @@ contract Member_assignRole is Law {
       }
 
       // check if account is blacklisted. 
-      if (AgDAO(payable(agDao)).isAccountBlacklisted(msg.sender) == true) {
+      if (AgDao(payable(agDao)).isAccountBlacklisted(msg.sender) == true) {
         revert Member_assignRole__AccountBlacklisted();
       }
+
+      // NB: note, no check if a proposal has succeeded. This law can be called directly. 
 
       // step 3 : creating data to send to the execute function of agDAO's SepearatedPowers contract.
       address[] memory targets = new address[](1);

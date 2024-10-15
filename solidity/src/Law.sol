@@ -110,7 +110,6 @@ contract Law is IERC165, ERC165, EIP712, ILaw {
   ) internal pure virtual returns (uint256) {
       return uint256(keccak256(abi.encode(targetLaw, lawCalldata, descriptionHash)));
   }
-
 }
 
 

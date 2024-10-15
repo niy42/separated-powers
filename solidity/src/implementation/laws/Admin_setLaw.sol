@@ -5,6 +5,9 @@ import {Law} from "../../Law.sol";
 import {SeparatedPowers} from "../../SeparatedPowers.sol";
 import {ISeparatedPowers} from "../../interfaces/ISeparatedPowers.sol";
 
+// ONLY FOR TESTING PURPOSES // DO NOT USE IN PRODUCTION
+import {console2} from "lib/forge-std/src/Test.sol";
+
 /**
  * @notice Example Law contract. 
  * 
@@ -42,11 +45,18 @@ import {ISeparatedPowers} from "../../interfaces/ISeparatedPowers.sol";
       }
 
       // step 1: decode the calldata. Note: lawCalldata can have any format. 
-      (address law, bool toInclude, bytes32 parentDescriptionHash, bytes32 descriptionHash) =
-            abi.decode(lawCalldata, (address, bool, bytes32, bytes32));
+      (address law, bool toInclude, bytes memory parentCalldata, bytes32 descriptionHash) =
+            abi.decode(lawCalldata, (address, bool, bytes, bytes32));
+      
+      (, , bytes32 whaleDescriptionHash, bytes32 parentDescriptionHash) =
+            abi.decode(parentCalldata, (address, bool, bytes32, bytes32));
+
+      console2.logAddress(law); 
+      console2.logBool(toInclude);
+      console2.logBytes32(parentDescriptionHash);
 
       // step 2: check if parent proposal has been executed. 
-      uint256 parentProposalId = hashProposal(parentLaw, abi.encode(law, toInclude), parentDescriptionHash);
+      uint256 parentProposalId = hashProposal(parentLaw, parentCalldata, parentDescriptionHash);
       if (SeparatedPowers(payable(agDao)).state(parentProposalId) != ISeparatedPowers.ProposalState.Completed) {
         revert Senior_acceptProposedLaw__ParentProposalNotExecuted(parentProposalId);
       }

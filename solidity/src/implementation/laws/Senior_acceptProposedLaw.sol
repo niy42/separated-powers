@@ -6,6 +6,9 @@ import {SeparatedPowers} from "../../SeparatedPowers.sol";
 import {ISeparatedPowers} from "../../interfaces/ISeparatedPowers.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+// ONLY FOR TESTING PURPOSES // DO NOT USE IN PRODUCTION
+import {console2} from "lib/forge-std/src/Test.sol";
+
 /**
  * @notice Example Law contract. 
  * 
@@ -50,7 +53,7 @@ contract Senior_acceptProposedLaw is Law {
             abi.decode(lawCalldata, (address, bool, bytes32, bytes32));
 
       // step 2: check if parent proposal has been executed. 
-      uint256 parentProposalId = hashProposal(parentLaw, abi.encode(law, toInclude), parentDescriptionHash);
+      uint256 parentProposalId = hashProposal(parentLaw, abi.encode(law, toInclude, parentDescriptionHash), parentDescriptionHash);
       if (SeparatedPowers(payable(agDao)).state(parentProposalId) != ISeparatedPowers.ProposalState.Completed) {
         revert Senior_acceptProposedLaw__ParentProposalNotExecuted(parentProposalId);
       }

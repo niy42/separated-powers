@@ -9,6 +9,9 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Address} from "../lib/openzeppelin-contracts/contracts/utils/Address.sol";
 import {EIP712} from "../lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
 
+// ONLY FOR TESTING PURPOSES // DO NOT USE IN PRODUCTION
+import {console2} from "lib/forge-std/src/Test.sol";
+
 /**
  * @notice the core contract of the SeparatedPowers protocol. Inherits from {LawsManager}, {AuthoritiesManager} and {Law}.
  * Code derived from OpenZeppelin's Governor.sol contract. 
@@ -31,7 +34,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
     error SeparatedPowers__AccessDenied(); 
     error SeparatedPowers__UnexpectedProposalState(); 
     error SeparatedPowers__InvalidProposalId(); 
-    error SeperatedPowers__NonexistentProposal(uint256 proposalId); 
+    error SeperatedPowers__NonExistentProposal(uint256 proposalId); 
     error SeparatedPowers__InvalidProposalLength(uint256 targetsLength, uint256 calldatasLength); 
     error SeparatedPowers__ProposalAlreadyCompleted(); 
     error SeparatedPowers__ProposalCancelled(); 
@@ -84,11 +87,9 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
      * 
      * @param name_ name of the contract
      */
-    constructor(
-        string memory name_
-        ) EIP712(name_, version()) { 
+    constructor(string memory name_) EIP712(name_, version()) { 
         _name = name_;
-        setRole(ADMIN_ROLE, msg.sender, true); // the account that initiates a SeparatedPowers contract is set to its admin.
+        _setRole(ADMIN_ROLE, msg.sender, true); // the account that initiates a SeparatedPowers contract is set to its admin.
 
         emit SeparatedPowers__Initialized(address(this));
     }
@@ -129,10 +130,10 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
 
         // ...and execute constitutional laws
         for (uint256 i = 0; i < constitutionalLaws.length; i++) {
-            setLaw(constitutionalLaws[i], true);
+            _setLaw(constitutionalLaws[i], true);
         }
         for (uint256 i = 0; i < constitutionalRoles.length; i++) {
-            setRole(constitutionalRoles[i].roleId, constitutionalRoles[i].account, true);
+            _setRole(constitutionalRoles[i].roleId, constitutionalRoles[i].account, true);
         }
     }
 
@@ -153,6 +154,27 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         // if check passes: propose. 
         return _propose(msg.sender, targetLaw, lawCalldata, description);
     }
+
+    /**
+     * @dev See {ISeperatedPowers.castVote}.
+     */
+    function castVote(uint256 proposalId, uint8 support) external virtual returns (uint256) {
+        address voter = msg.sender;
+        return _castVote(proposalId, voter, support, "");
+    }
+
+    /**
+     * @dev See {ISeperatedPowers.castVoteWithReason}.
+     */
+    function castVoteWithReason(
+        uint256 proposalId,
+        uint8 support,
+        string calldata reason
+    ) public virtual returns (uint256) {
+        address voter = msg.sender;
+        return _castVote(proposalId, voter, support, reason);
+    }
+
 
     /**
      * @dev see {ISeperatedPowers.execute}
@@ -235,27 +257,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         return _cancel(targetLaw, lawCalldata, descriptionHash);
     }
 
-    /**
-     * @dev See {ISeperatedPowers.castVote}.
-     */
-    function castVote(uint256 proposalId, uint8 support) external virtual returns (uint256) {
-        address voter = msg.sender;
-        return _castVote(proposalId, voter, support, "");
-    }
-
-
-    /**
-     * @dev See {ISeperatedPowers.castVoteWithReason}.
-     */
-    function castVoteWithReason(
-        uint256 proposalId,
-        uint8 support,
-        string calldata reason
-    ) public virtual returns (uint256) {
-        address voter = msg.sender;
-        return _castVote(proposalId, voter, support, reason);
-    }
-
+ 
     //////////////////////////////
     //         PUBLIC           //
     //////////////////////////////
@@ -279,7 +281,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         uint256 start = _proposals[proposalId].voteStart; // = startDate
 
         if (start == 0) {
-            revert SeperatedPowers__NonexistentProposal(proposalId);
+            revert SeperatedPowers__NonExistentProposal(proposalId);
         }
 
         uint256 deadline = proposalDeadline(proposalId);
@@ -319,6 +321,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         uint32 duration = Law(targetLaw).votingPeriod(); 
         ProposalCore storage proposal = _proposals[proposalId];
         proposal.proposer = proposer;
+        proposal.targetLaw = targetLaw;
         proposal.voteStart = uint48(block.number); // at the moment proposal is made, voting start. There is no delay functionality. 
         proposal.voteDuration = duration;
 
@@ -334,43 +337,6 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         );
 
         // Using a named return variable to avoid stack too deep errors
-    }
-
-    /**
-     * @notice Internal execution mechanism. Can be overridden (without a super call) to modify the way execution is
-     * performed 
-     *
-     * NOTE: Calling this function directly will NOT check the current state of the proposal, set the executed flag to
-     * true or emit the `ProposalExecuted` event. Executing a proposal should be done using {execute} or {_execute}.
-     */
-    function _executeOperations(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas
-    ) internal virtual {
-        for (uint256 i = 0; i < targets.length; ++i) {
-            (bool success, bytes memory returndata) = targets[i].call{value: values[i]}(calldatas[i]);
-            Address.verifyCallResult(success, returndata);
-        }
-    }
-
-    /**
-     * @notice Internal cancel mechanism with minimal restrictions. A proposal can be cancelled in any state other than
-     * Cancelled, Expired, or Executed. Once cancelled a proposal can't be re-submitted.
-     *
-     * Emits a {ISeperatedPowers-ProposalCanceled} event.
-     */
-    function _cancel(
-        address targetLaw, 
-        bytes memory lawCalldata,
-        bytes32 descriptionHash
-    ) internal virtual returns (uint256) {
-        uint256 proposalId = hashProposal(targetLaw, lawCalldata, descriptionHash);
-
-        _proposals[proposalId].cancelled = true;
-        emit ProposalCancelled(proposalId);
-
-        return proposalId;
     }
 
     /**
@@ -430,9 +396,46 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
         uint8 quorum = Law(targetLaw).quorum(); 
         uint64 accessRole = Law(targetLaw).accessRole(); 
         uint256 amountMembers = roles[accessRole].amountMembers;
-        
+ 
         // note if quorum is set to 0 in a Law, it will automatically return true.
-        return quorum == 0 || (amountMembers * succeedAt) / DENOMINATOR <= proposalVote.forVotes; 
+        return quorum == 0 || amountMembers * succeedAt <= proposalVote.forVotes * DENOMINATOR;  
+    }
+
+    /**
+     * @notice Internal execution mechanism. Can be overridden (without a super call) to modify the way execution is
+     * performed 
+     *
+     * NOTE: Calling this function directly will NOT check the current state of the proposal, set the executed flag to
+     * true or emit the `ProposalExecuted` event. Executing a proposal should be done using {execute} or {_execute}.
+     */
+    function _executeOperations(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas
+    ) internal virtual {
+        for (uint256 i = 0; i < targets.length; ++i) {
+            (bool success, bytes memory returndata) = targets[i].call{value: values[i]}(calldatas[i]);
+            Address.verifyCallResult(success, returndata);
+        }
+    }
+
+    /**
+     * @notice Internal cancel mechanism with minimal restrictions. A proposal can be cancelled in any state other than
+     * Cancelled, Expired, or Executed. Once cancelled a proposal can't be re-submitted.
+     *
+     * Emits a {ISeperatedPowers-ProposalCanceled} event.
+     */
+    function _cancel(
+        address targetLaw, 
+        bytes memory lawCalldata,
+        bytes32 descriptionHash
+    ) internal virtual returns (uint256) {
+        uint256 proposalId = hashProposal(targetLaw, lawCalldata, descriptionHash);
+
+        _proposals[proposalId].cancelled = true;
+        emit ProposalCancelled(proposalId);
+
+        return proposalId;
     }
 
     /////////////////////////////////////

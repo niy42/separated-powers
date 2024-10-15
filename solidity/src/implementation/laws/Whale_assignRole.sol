@@ -13,7 +13,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  *
  *  
  */
-abstract contract Whale_assignRole is Law {
+contract Whale_assignRole is Law {
     error Whale_assignRole__Error();
     error Senior_assignRole__TooManySeniors();
 
