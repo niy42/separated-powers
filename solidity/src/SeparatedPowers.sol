@@ -84,9 +84,7 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
      * 
      * @param name_ name of the contract
      */
-    constructor(
-        string memory name_
-        ) EIP712(name_, version()) { 
+    constructor(string memory name_) EIP712(name_, version()) { 
         _name = name_;
         _setRole(ADMIN_ROLE, msg.sender, true); // the account that initiates a SeparatedPowers contract is set to its admin.
 
@@ -129,10 +127,10 @@ contract SeparatedPowers is EIP712, AuthoritiesManager, LawsManager, ISeparatedP
 
         // ...and execute constitutional laws
         for (uint256 i = 0; i < constitutionalLaws.length; i++) {
-            setLaw(constitutionalLaws[i], true);
+            _setLaw(constitutionalLaws[i], true);
         }
         for (uint256 i = 0; i < constitutionalRoles.length; i++) {
-            setRole(constitutionalRoles[i].roleId, constitutionalRoles[i].account, true);
+            _setRole(constitutionalRoles[i].roleId, constitutionalRoles[i].account, true);
         }
     }
 

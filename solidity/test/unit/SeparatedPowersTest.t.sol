@@ -37,31 +37,45 @@ contract SeparatedPowersTest is Test {
   address eve = makeAddr("eve");
   address frank = makeAddr("frank");
 
-  /* roles */
+  /* state variables */
   uint64 public constant ADMIN_ROLE = type(uint64).min; // == 0
-  uint64 public constant PUBLIC_ROLE = type(uint64).max; // == 0
+  uint64 public constant PUBLIC_ROLE = type(uint64).max; // == a lot. This role is for everyone. 
   uint64 public constant SENIOR_ROLE = 1; 
   uint64 public constant WHALE_ROLE = 2; 
   uint64 public constant MEMBER_ROLE = 3; 
+  bytes32 SALT = bytes32(hex'7ceda5'); 
 
   /* modifiers */
-  modifier consituteDao (address[] memory constitutionalLaws, IAuthoritiesManager.ConstituentRole[] memory constituentRoles) {
-    agDao.constitute(constitutionalLaws, constituentRoles);
-
-    _; 
-  }
 
   ///////////////////////////////////////////////
   ///                   Setup                 ///
   ///////////////////////////////////////////////
-  function setUp() public {
+  function setUp() public {     
     vm.roll(10); 
-    vm.startPrank(alice);
-      AgDao agDao = new AgDao();
-      AgCoins agCoins = new AgCoins(address(agDao));
-    vm.stopPrank();
+    vm.startBroadcast(alice);
+      agDao = new AgDao();
+      agCoins = new AgCoins(address(agDao));
+    vm.stopBroadcast();
 
-    address[] memory constitutionalLaws = _deployLaws(payable(address(agDao)), address(agCoins)); 
+    /* setup roles */
+    IAuthoritiesManager.ConstituentRole[] memory constituentRoles = new IAuthoritiesManager.ConstituentRole[](10);
+    constituentRoles[0] = IAuthoritiesManager.ConstituentRole(alice, MEMBER_ROLE);
+    constituentRoles[1] = IAuthoritiesManager.ConstituentRole(bob, MEMBER_ROLE);
+    constituentRoles[2] = IAuthoritiesManager.ConstituentRole(charlotte, MEMBER_ROLE);
+    constituentRoles[3] = IAuthoritiesManager.ConstituentRole(david, MEMBER_ROLE);
+    constituentRoles[4] = IAuthoritiesManager.ConstituentRole(eve, MEMBER_ROLE);
+    constituentRoles[5] = IAuthoritiesManager.ConstituentRole(alice, SENIOR_ROLE);
+    constituentRoles[6] = IAuthoritiesManager.ConstituentRole(bob, SENIOR_ROLE);
+    constituentRoles[7] = IAuthoritiesManager.ConstituentRole(charlotte, SENIOR_ROLE);
+    constituentRoles[8] = IAuthoritiesManager.ConstituentRole(david, WHALE_ROLE);
+    constituentRoles[9] = IAuthoritiesManager.ConstituentRole(eve, WHALE_ROLE);
+
+    /* setup laws */
+    address[] memory constituentLaws = _deployLaws(payable(address(agDao)), address(agCoins));
+    
+    vm.startBroadcast(alice);
+    agDao.constitute(constituentLaws, constituentRoles);
+    vm.stopBroadcast();
   }
 
   ///////////////////////////////////////////////
@@ -76,7 +90,6 @@ contract SeparatedPowersTest is Test {
   }
 
   function testDeployProtocolSetsSenderToAdmin () public {
-    
     vm.prank(alice); 
     SeparatedPowers separatedPowers = new SeparatedPowers("TestDao");
 
@@ -84,54 +97,49 @@ contract SeparatedPowersTest is Test {
   }
   
   function testLawsRevertWhenNotActivated () public {
-    // vm.startBroadcast();
-    // vm.expectRevert();
-    // agDao. 
-    // vm.stopBroadcast();
+    string memory requiredStatement = "I request membership to agDAO.";
+    bytes32 requiredStatementHash = keccak256(bytes(requiredStatement));
+    bytes memory lawCalldata = abi.encode(requiredStatementHash);
+    
+    vm.startPrank(alice); 
+    AgDao agDaoTest = new AgDao();
+    Law memberAssignRole = new Member_assignRole(payable(address(agDaoTest)));
+    vm.stopPrank();
+
+    vm.expectRevert(SeparatedPowers.SeparatedPowers__ExecuteCallNotFromActiveLaw.selector);
+    vm.prank(bob); 
+    memberAssignRole.executeLaw(lawCalldata); 
   }
 
   ///////////////////////////////////////////////
   ///                   Helper                 ///
   ///////////////////////////////////////////////
-  function _deployLaws(address payable agDao_, address agCoins_) internal returns (address[] memory constitutionalLaws) {
+   function _deployLaws(address payable agDaoAddress_, address agCoinsAddress_) internal returns (address[] memory constituentLaws) {
       address[] memory constitutionalLaws = new address[](12);
+      IAuthoritiesManager.ConstituentRole[] memory constituentRoles = new IAuthoritiesManager.ConstituentRole[](0);
 
       // deploying laws //
       vm.startPrank(bob);
       // re assigning roles // 
-      Law member_assignRole = new Member_assignRole(agDao_);
-      Law senior_assignRole = new Senior_assignRole(agDao_, agCoins_);
-      Law senior_revokeRole = new Senior_revokeRole(agDao_, agCoins_);
-      Law whale_assignRole = new Whale_assignRole(agDao_, agCoins_);
+      constitutionalLaws[0] = address(new Member_assignRole(agDaoAddress_));
+      constitutionalLaws[1] = address(new Senior_assignRole(agDaoAddress_, agCoinsAddress_));
+      constitutionalLaws[2] = address(new Senior_revokeRole(agDaoAddress_, agCoinsAddress_));
+      constitutionalLaws[3] = address(new Whale_assignRole(agDaoAddress_, agCoinsAddress_));
       
       // re activating & deactivating laws  // 
-      Law whale_proposeLaw = new Whale_proposeLaw(agDao_, agCoins_);
-      Law senior_acceptProposedLaw = new Senior_acceptProposedLaw(agDao_, agCoins_, address(whale_proposeLaw));
-      Law admin_setLaw = new Admin_setLaw(agDao_, address(senior_acceptProposedLaw));
+      constitutionalLaws[4] = address(new Whale_proposeLaw(agDaoAddress_, agCoinsAddress_));
+      constitutionalLaws[5] = address(new Senior_acceptProposedLaw(agDaoAddress_, agCoinsAddress_, address(constitutionalLaws[4])));
+      constitutionalLaws[6] = address(new Admin_setLaw(agDaoAddress_, address(constitutionalLaws[5])));
 
       // re updating core values // 
-      Law member_proposeCoreValue = new Member_proposeCoreValue(agDao_, agCoins_);
-      Law whale_acceptCoreValue = new Whale_acceptCoreValue(agDao_, agCoins_, address(member_proposeCoreValue));
+      constitutionalLaws[7] = address(new Member_proposeCoreValue(agDaoAddress_, agCoinsAddress_));
+      constitutionalLaws[8] = address(new Whale_acceptCoreValue(agDaoAddress_, agCoinsAddress_, address(constitutionalLaws[7])));
       
       // re enforcing core values as requirement for external funding //   
-      Law whale_revokeMember = new Whale_revokeMember(agDao_, agCoins_);
-      Law member_challengeRevoke = new Member_challengeRevoke(agDao_, address(whale_revokeMember));
-      Law senior_reinstateMember = new Senior_reinstateMember(agDao_, agCoins_, address(member_challengeRevoke));
+      constitutionalLaws[9] = address(new Whale_revokeMember(agDaoAddress_, agCoinsAddress_));
+      constitutionalLaws[10] = address(new Member_challengeRevoke(agDaoAddress_, address(constitutionalLaws[9])));
+      constitutionalLaws[11] = address(new Senior_reinstateMember(agDaoAddress_, agCoinsAddress_, address(constitutionalLaws[10])));
       vm.stopPrank();
-
-      // assigning addresses to array //
-      constitutionalLaws[0] = address(member_assignRole); 
-      constitutionalLaws[1] = address(senior_assignRole);
-      constitutionalLaws[2] = address(senior_revokeRole);
-      constitutionalLaws[3] = address(whale_assignRole);
-      constitutionalLaws[4] = address(whale_proposeLaw);
-      constitutionalLaws[5] = address(senior_acceptProposedLaw);
-      constitutionalLaws[6] = address(admin_setLaw);
-      constitutionalLaws[7] = address(member_proposeCoreValue);
-      constitutionalLaws[8] = address(whale_acceptCoreValue);
-      constitutionalLaws[9] = address(whale_revokeMember);
-      constitutionalLaws[10] = address(member_challengeRevoke);
-      constitutionalLaws[11] = address(senior_reinstateMember);
 
       return constitutionalLaws; 
     }

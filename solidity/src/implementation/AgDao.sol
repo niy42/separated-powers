@@ -18,8 +18,8 @@ contract AgDao is SeparatedPowers {
   ShortString[] public coreRequirements; // description of short strings. have to be shorter than 31 characters.
   mapping(address => bool) public blacklistedAccounts; // description of short strings. have to be shorter than 31 characters.
 
-  constructor() SeparatedPowers(
-    'agDao' // name of the DAO. 
+  constructor( ) SeparatedPowers(
+    'agDao'// name of the DAO. 
     ) {} 
 
   // a few functions that are specific to the AgDao.
