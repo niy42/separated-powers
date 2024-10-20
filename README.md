@@ -1,3 +1,8 @@
+Hey Niy, do you see this? If so, feel free to add some extra notes here. 
+
+
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
