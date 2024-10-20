@@ -21,3 +21,5 @@ How does this sound?
 
 I think we can really pull it off quite quickly now. The main issue is that we get the workflow between us two on github to work. 
 
+But just to say again, it is really fantastic to now be able to work together on github. Thank you so much! 
+
