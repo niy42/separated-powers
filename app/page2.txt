@@ -1,0 +1,181 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { motion, AnimatePresence } from "framer-motion"
+import { CheckCircle, XCircle, AlertCircle, PlayCircle, User, Shield, Key } from "lucide-react"
+import ThemeToggle from "@/components/shared/ThemeToggle"
+import { useTheme } from "@/context/ThemeContext"
+
+// Define roles
+type Role = "Admin" | "Seniors" | "Whales" | "Members"
+type ProposalStatus = "Proposed" | "Approved" | "Executed" | "Rejected"
+
+interface Proposal {
+    id: number
+    description: string
+    status: ProposalStatus
+}
+
+export default function DAOGovernance() {
+    const [currentRole, setCurrentRole] = useState<Role>("Admin")
+    const [proposals, setProposals] = useState<Proposal[]>([])
+    const [newProposal, setNewProposal] = useState("")
+    const { theme, setTheme } = useTheme()
+
+    // Admin or Whales can propose a decision
+    const proposeDecision = () => {
+        if ((currentRole === "Admin" || currentRole === "Whales") && newProposal.trim() !== "") {
+            const newId = proposals.length + 1
+            setProposals([...proposals, { id: newId, description: newProposal, status: "Proposed" }])
+            setNewProposal("")
+        }
+    }
+
+    // Admin or Seniors can approve or reject
+    const approveDecision = (id: number) => {
+        if (currentRole === "Admin" || currentRole === "Seniors") {
+            setProposals(
+                proposals.map((proposal) =>
+                    proposal.id === id ? { ...proposal, status: "Approved" } : proposal
+                )
+            )
+        }
+    }
+
+    const rejectDecision = (id: number) => {
+        if (currentRole === "Admin" || currentRole === "Seniors") {
+            setProposals(
+                proposals.map((proposal) =>
+                    proposal.id === id ? { ...proposal, status: "Rejected" } : proposal
+                )
+            )
+        }
+    }
+
+    // Only Admin can execute decisions
+    const executeDecision = (id: number) => {
+        if (currentRole === "Admin") {
+            setProposals(
+                proposals.map((proposal) =>
+                    proposal.id === id ? { ...proposal, status: "Executed" } : proposal
+                )
+            )
+        }
+    }
+
+    const getStatusColor = (status: ProposalStatus) => {
+        switch (status) {
+            case "Proposed":
+                return "bg-yellow-100 text-yellow-800"
+            case "Approved":
+                return "bg-blue-100 text-blue-800"
+            case "Executed":
+                return "bg-green-100 text-green-800"
+            case "Rejected":
+                return "bg-red-100 text-red-800"
+        }
+    }
+
+    const getStatusIcon = (status: ProposalStatus) => {
+        switch (status) {
+            case "Proposed":
+                return <AlertCircle className="w-4 h-4" />
+            case "Approved":
+                return <CheckCircle className="w-4 h-4" />
+            case "Executed":
+                return <PlayCircle className="w-4 h-4" />
+            case "Rejected":
+                return <XCircle className="w-4 h-4" />
+        }
+    }
+
+    return (
+        <section>
+            <Card className={`relative top-10 w-full bg-transparent max-w-4xl m-auto shadow-lg rounded-lg p-2 sm:p-6 ${theme === 'dark' ? "border-gray-700" : "border-gray-300"}`}>
+                <CardHeader className="flex flex-col space-x-2">
+                    <div className="flex justify-between items-center">
+                        <p className="flex-auto">Logo</p>
+                        <ThemeToggle currentTheme={theme} setTheme={setTheme} />
+                    </div>
+                    <div className="space-y-1 flex-grow">
+                        <CardTitle className="text-lg sm:text-2xl lg:text-3xl">DAO Governance</CardTitle>
+                        <CardDescription>Manage proposals based on your role</CardDescription>
+                    </div>
+                </CardHeader>
+
+                <CardContent>
+                    {/* Select Role */}
+                    <Label>Select Role</Label>
+                    <Select onValueChange={(value: Role) => setCurrentRole(value)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Admin">Admin</SelectItem>
+                            <SelectItem value="Seniors">Seniors</SelectItem>
+                            <SelectItem value="Whales">Whales</SelectItem>
+                            <SelectItem value="Members">Members</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    {/* Create New Proposal (for Admin and Whales) */}
+                    {(currentRole === "Admin" || currentRole === "Whales") && (
+                        <div className="mt-4">
+                            <Label>Create a New Proposal</Label>
+                            <Input
+                                value={newProposal}
+                                onChange={(e) => setNewProposal(e.target.value)}
+                                placeholder="Proposal description"
+                            />
+                            <Button className="mt-2" onClick={proposeDecision}>
+                                Propose
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* List of Proposals */}
+                    <div className="mt-4">
+                        {proposals.length > 0 ? (
+                            proposals.map((proposal) => (
+                                <motion.div key={proposal.id} className="mt-4 p-4 border rounded-lg shadow-sm">
+                                    <div className="flex justify-between items-center">
+                                        <p>{proposal.description}</p>
+                                        <span className={`rounded-full px-2 py-1 text-sm ${getStatusColor(proposal.status)}`}>
+                                            {getStatusIcon(proposal.status)} {proposal.status}
+                                        </span>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="mt-2">
+                                        {currentRole === "Admin" && proposal.status === "Approved" && (
+                                            <Button onClick={() => executeDecision(proposal.id)} className="mr-2">
+                                                Execute
+                                            </Button>
+                                        )}
+                                        {(currentRole === "Admin" || currentRole === "Seniors") && proposal.status === "Proposed" && (
+                                            <>
+                                                <Button onClick={() => approveDecision(proposal.id)} className="mr-2">
+                                                    Approve
+                                                </Button>
+                                                <Button onClick={() => rejectDecision(proposal.id)} variant="destructive">
+                                                    Reject
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            ))
+                        ) : (
+                            <p>No proposals yet</p>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+        </section>
+    )
+}
