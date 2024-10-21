@@ -92,7 +92,7 @@ export const joinAsMember = async () => {
     }
 
     try {
-        const txResponse = await contract?.joinAsMember();
+        const txResponse = await contract.joinAsMember();
         console.log('Transaction sent:', txResponse);
 
         const receipt = await txResponse.wait();
