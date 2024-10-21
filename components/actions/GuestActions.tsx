@@ -1,84 +1,106 @@
 "use client"
 
 import React, { useState } from 'react';
-import { proposeCoreValue, acceptCoreValue, revokeMember } from '@/blockChainUtils/blockChainUtils';
+import { useActionsProps } from '@/context/types';
+import { useActions } from '@/hooks/useActions';
+import { ethers } from 'ethers';
 
-interface GuestActionsProps {
-    address: string;
-}
+const GuestActions: React.FC<useActionsProps> = ({wallet, disabled}: useActionsProps ) => {
+    const [addressSenior, setAddressSenior] = useState<string>('');
+    const [revokeId, setRevokeId] = useState<string>('');
+    const [description, setDescription] = useState<string>('');
+    const {status, error, law, propose, execute} = useActions(); 
+    const abiCoder = new ethers.utils.AbiCoder();
 
-const GuestActions: React.FC = () => {
-    const [newCoreValue, setNewCoreValue] = useState<string>('');
-    const [memberAddress, setMemberAddress] = useState<string>('');
-    const [message, setMessage] = useState<string>('');
+    console.log({status, error, law})
 
-    const handleProposeCoreValue = async () => {
-        try {
-            const result = await proposeCoreValue(newCoreValue);
-            setMessage(`Core value proposed: ${result}`);
-            setNewCoreValue('');
-        } catch (error) {
-            console.error('Error proposing core value:', error);
-            setMessage('Failed to propose core value.');
-        }
+    const handleAssignRole = async () => {
+        const lawCalldata: string = abiCoder.encode(["address"], [wallet.address]);
+        const descriptionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("I request membership to agDAO."));
+        execute(
+            wallet, 
+            "0xd2aBB3eb2E55a143c7CE4E7aC500701e5DA1fDE3", // = Member_assignRole
+            lawCalldata as `0x${string}`,
+            descriptionHash as `0x${string}`
+        )
     };
 
-    const handleAcceptCoreValue = async () => {
-        try {
-            const result = await acceptCoreValue(newCoreValue);
-            setMessage(`Core value accepted: ${result}`);
-            setNewCoreValue('');
-        } catch (error) {
-            console.error('Error accepting core value:', error);
-            setMessage('Failed to accept core value.');
-        }
-    };
-
-    const handleRevokeMember = async () => {
-        try {
-            const result = await revokeMember(memberAddress);
-            setMessage(`Member revoked: ${result}`);
-            setMemberAddress('');
-        } catch (error) {
-            console.error('Error revoking member:', error);
-            setMessage('Failed to revoke member.');
-        }
+    const handleChallengeRevoke = async () => {
+        const descriptionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(description));
+        // using revokeId, need to retrieve this data from the initial proposal! 
+        const revokeDescriptionHash = '0x0'
+        const revokeCalldata = '0x0'
+        const lawCalldata: string = abiCoder.encode(["bytes32", "bytes"], [revokeDescriptionHash, revokeCalldata]);
+        propose(
+            wallet, 
+            "0x0", // = Member_proposeCoreValue
+            lawCalldata as `0x${string}`,
+            description
+        )
     };
 
     return (
-        <div>
-            <div>
-                <h4>Propose Core Value</h4>
-                <input
-                    type="text"
-                    value={newCoreValue}
-                    onChange={(e) => setNewCoreValue(e.target.value)}
-                    placeholder="Enter new core value"
-                />
-                <button onClick={handleProposeCoreValue}>Propose</button>
-            </div>
-            <div>
-                <h4>Accept Core Value</h4>
-                <input
-                    type="text"
-                    value={newCoreValue}
-                    onChange={(e) => setNewCoreValue(e.target.value)}
-                    placeholder="Enter core value to accept"
-                />
-                <button onClick={handleAcceptCoreValue}>Accept</button>
-            </div>
-            <div>
-                <h4>Revoke Member</h4>
-                <input
-                    type="text"
-                    value={memberAddress}
-                    onChange={(e) => setMemberAddress(e.target.value)}
-                    placeholder="Enter member address to revoke"
-                />
-                <button onClick={handleRevokeMember}>Revoke</button>
-            </div>
-            {message && <p>{message}</p>}
+        <>
+        {/* AssignRole */}
+        <div 
+            className="bg-gradient-to-r from-purple-300 to-purple-600 p-4 px-6 rounded-lg shadow-lg border-2 border-purple-600 opacity-30 aria-selected:opacity-100"
+            aria-selected={disabled}
+        >
+            <h4 className='text-white text-lg font-semibold text-center'>
+                Claim Member Role
+            </h4>
+            <p className='text-white text-center mb-4'>
+                Anyone can claim a member role. 
+            </p>
+                <div className="flex flex-row justify-center mt-6">
+                    <button
+                        onClick={handleAssignRole}
+                        className="w-fit bg-white text-purple-600 font-semibold px-4 py-2 rounded-lg hover:bg-blue-200 disabled:hover:bg-white transition duration-100"
+                        disabled = { false }
+                    >
+                        Claim member role
+                    </button>
+                </div>
         </div>
+        
+        {/* ChallengeRevoke */}
+        <div 
+            className="bg-gradient-to-r from-purple-300 to-purple-600 p-4 px-6 rounded-lg shadow-lg border-2 border-purple-600 opacity-30 aria-selected:opacity-100"
+            aria-selected={disabled}
+        >
+            <h4 className='text-white text-lg font-semibold text-center'>
+                Challenge Revoke Member Role
+            </h4>
+            <p className='text-white text-center mb-4'>
+                If your member role has been revoked, you can create a challenge which allows seniors to vote on your reinstatement. 
+            </p>
+                <input
+                    type="text"
+                    value={addressSenior}
+                    onChange={(e) => setRevokeId(e.target.value)}
+                    placeholder="Enter proposal ID through which whales revoked your member role."
+                    maxLength={100}
+                    className="border border-white rounded-lg p-2 mb-4 w-full"
+                />
+                <input
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Enter supporting statement." 
+                    maxLength={35}
+                    className="border border-white rounded-lg p-2 mb-4 w-full"
+                />
+                <div className="flex flex-row justify-start mt-6">
+                    <button
+                        onClick={handleChallengeRevoke}
+                        className="w-fit bg-white text-purple-600 font-semibold px-4 py-2 rounded-lg hover:bg-blue-200 disabled:hover:bg-white transition duration-100"
+                        disabled 
+                    >
+                        Challenge revoke (NB: this creates a proposal you need to accept) 
+                    </button>
+                </div>
+        </div>
+        </>
     );
 };
 

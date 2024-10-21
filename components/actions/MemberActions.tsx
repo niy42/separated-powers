@@ -1,64 +1,116 @@
 "use client"
 
 import React, { useState } from 'react';
-import { proposeNewValue, init, contract } from '@/blockChainUtils/blockChainUtils';
 import { useTheme } from '@/context/ThemeContext';
+import { useActions } from '@/hooks/useActions';
+import {ethers} from 'ethers';
+import { useActionsProps } from '@/context/types';
 
-const MemberActions: React.FC = () => {
+// about encoding lawCalldata
+// https://docs.ethers.org/v5/api/utils/abi/coder/
+// abiCoder.encode([ "uint", "string" ], [ 1234, "Hello World" ]);
+
+const MemberActions: React.FC<useActionsProps> = ({wallet, disabled}: useActionsProps ) => {
     const [newValue, setNewValue] = useState<string>('');
-    const [message, setMessage] = useState<string>('');
-    const { address } = useTheme();
+    const [whaleAddress, setWhaleAddress] = useState<string>('');
+    const [description, setDescription] = useState<string>('');
+    const {status, error, law, propose, execute} = useActions(); 
+    const abiCoder = new ethers.utils.AbiCoder();
 
-    const handleProposeNewValue = async () => {
-        try {
-            init();
-            if (!address) {
-                setMessage("Address is not available.");
-                return;
-            }
-
-            const isMember = await contract?.members(address);
-            if (isMember) {
-                const result = await proposeNewValue(newValue);
-                setMessage(`New value proposed successfully: ${result}`);
-                setNewValue('');
-            } else {
-                setMessage("You are not a member.");
-            }
-
-        } catch (error: any) {
-            console.error('Error proposing new value:', error);
-            const parsedErrorMessage = (error as any)?.reason
-                ? error?.reason.slice('execution reverted: '.length).slice(0, -1)
-                : 'An unknown error occurred';
-            setMessage(parsedErrorMessage);
-        }
+    const handleProposeCoreValue = async () => {
+        const lawCalldata: string = abiCoder.encode(["bytes"], [newValue]);
+        propose(
+            wallet, 
+            "0x8508D5b9bA7F255F70E8022A8aFbDe72083773f8", // = Member_proposeCoreValue
+            lawCalldata as `0x${string}`,
+            description
+        )
     };
 
+    const handleAssignWhale = async () => {
+        const descriptionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(description));
+        const lawCalldata: string = abiCoder.encode(["address"], [whaleAddress]);
+        execute(
+            wallet, 
+            "0x0", // = Member_assignWhale
+            lawCalldata as `0x${string}`,
+            descriptionHash as `0x${string}`
+        )
+    };
+    
     return (
-        <div>
-            <h3>Member Actions</h3>
-            <div>
-                <h4>Propose New Value</h4>
-                <div className="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-6 rounded-lg shadow-lg">
+        <>
+            <div className="bg-gradient-to-r from-blue-300 to-blue-600 p-4 px-6 rounded-lg shadow-lg border-2 border-blue-600 opacity-30 aria-selected:opacity-100"
+            aria-selected={disabled}>
+                <h4 className='text-white text-lg font-semibold text-center mb-4'>
+                    Propose New Core Value for the AgDao
+                </h4>
+                <p className='text-white text-center mb-4'>
+                    This decision will only pass if Seniors have accepted Whale's proposal. 
+                </p>
                     <input
                         type="text"
                         value={newValue}
                         onChange={(e) => setNewValue(e.target.value)}
-                        placeholder="Enter new value"
+                        placeholder="Enter new value (max 30 characters)"
+                        maxLength={30}
                         className="border border-white rounded-lg p-2 mb-4 w-full"
                     />
-                    <button
-                        onClick={handleProposeNewValue}
-                        className="bg-white text-purple-600 font-semibold px-4 py-2 rounded-lg hover:bg-gray-200 transition duration-200"
-                    >
-                        Propose Value
-                    </button>
-                </div>
-
+                    <input
+                        type="text"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Enter supporting message"
+                        maxLength={100}
+                        className="border border-white rounded-lg p-2 mb-4 w-full"
+                    />
+                    <div className="flex flex-row justify-start">
+                        <button
+                            onClick={handleProposeCoreValue}
+                            className="w-fit bg-white text-blue-600 font-semibold px-4 py-2 rounded-lg hover:bg-blue-200 transition duration-100"
+                        >
+                            Propose Value
+                        </button>
+                    </div>
+        
             </div>
-            {message && <p>{message}</p>}
-        </div>
+
+            <div className="bg-gradient-to-r from-blue-300 to-blue-600 p-4 px-6 rounded-lg shadow-lg border-2 border-blue-600 opacity-30 aria-selected:opacity-100"
+            aria-selected={disabled}>
+                <h4 className='text-white text-lg font-semibold text-center mb-4'>
+                    Assess an Account and Assign a whale Role 
+                </h4>
+                <p className='text-white text-center mb-4'>
+                    If the account has more than one million Ag coins, it will be assigned a whale role. If it already is a whale and has fewer than one million Ag coins, it will be removed from the whale role.
+                </p>
+                    <input
+                        type="text"
+                        value={newValue}
+                        onChange={(e) => setWhaleAddress(e.target.value)}
+                        placeholder="Enter account address"
+                        className="border border-white rounded-lg p-2 mb-4 w-full"
+                    />
+                    <input
+                        type="text"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Enter supporting message"
+                        maxLength={100}
+                        className="border border-white rounded-lg p-2 mb-4 w-full"
+                    />
+                    <div className="flex flex-row justify-start">
+                        <button
+                            onClick={handleAssignWhale}
+                            className="w-fit bg-white text-blue-600 font-semibold px-4 py-2 rounded-lg hover:bg-blue-200 disabled:hover:bg-white transition duration-100"
+                            disabled
+                        >
+                            Assess account
+                        </button>
+                    </div>
+        
+            </div>
+
+        </>
     );
 };
 

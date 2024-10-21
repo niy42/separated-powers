@@ -32,9 +32,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             {children}
           </ThemeProvider>
         </Providers>
-        <footer>
+        {/* <footer>
           <p>DAO Footer</p>
-        </footer>
+        </footer> */}
       </body>
     </html>
   );
