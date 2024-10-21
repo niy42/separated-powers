@@ -1,33 +1,28 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import AdminDashboard from "@/components/actions/AdminActions";
 import MemberActions from "@/components/actions/MemberActions";
 import WhaleActions from "@/components/actions/WhaleActions";
 import SeniorActions from "@/components/actions/SeniorActions";
 import GuestActions from "@/components/actions/GuestActions";
-import { getRole } from "@/blockChainUtils/blockChainUtils";
 import { ethers } from "ethers";
 import AdminActions from "@/components/actions/AdminActions";
-import ConnectWallet from "@/components/shared/ConnectWallet";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { Role } from "@/context/types";
 import { useRoles } from "@/hooks/useRoles";
 
 const DashboardPage: React.FC = () => {
-    const [role, setRole] = useState<string>(""); // Role can be Admin, Member, Whale, Senior, Guest
     const [admin, setAdmin] = useState<boolean>(false);  
     const [senior, setSenior] = useState<boolean>(false);  ;  
     const [whale, setWhale] = useState<boolean>(false);  
     const [member, setMember] = useState<boolean>(false);  
     const [guest, setGuest] = useState<boolean>(false);  
     const [mode, setMode] = useState<"Values"|"Actions"|"Proposals">("Actions");  
-    const [loading, setLoading] = useState<boolean>(true);
-    // const [error, setError] = useState<string | null>(null); // State for errors
+
     const {wallets } = useWallets();
     const wallet = wallets[0];
     const {status, error, roles, fetchRoles} = useRoles();
     const {ready, authenticated, login} = usePrivy();
+    // this seems odd, but it seems to be the only name supported by ethers.  
     new ethers.providers.AlchemyProvider("optimism-goerli", process.env.NEXT_PUBLIC_ALCHEMY_KEY);
 
     useEffect(() => {
@@ -139,10 +134,7 @@ const DashboardPage: React.FC = () => {
                 </button>
             </div>
 
-
-
             {
-
             mode == "Values" ? 
                 <div className="bg-white shadow-lg rounded-lg p-6 m-1">
                     A list of the currently accepted 'core values' of the DAO go here. (There is no selection by role for this tab.)
@@ -169,7 +161,7 @@ const DashboardPage: React.FC = () => {
         </div>
         :
             <div className="flex justify-center items-center h-screen">
-                <div className="text-lg text-green-900">Idling...</div>
+                <div className="text-lg text-green-900">...</div>
             </div>
         }
         </section>
