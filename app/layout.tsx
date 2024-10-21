@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { Providers } from "../context/Providers"
 import "./globals.css";
 
 const geistSans = localFont({
@@ -26,9 +27,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* <header> */}
           {/* <nav>DAO Navigation</nav> */}
         {/* </header> */}
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <Providers>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </Providers>
         <footer>
           <p>DAO Footer</p>
         </footer>

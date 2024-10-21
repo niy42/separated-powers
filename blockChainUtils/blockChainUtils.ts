@@ -9,30 +9,30 @@ let provider: ethers.providers.Web3Provider | undefined;
 export let contract: Contract | undefined;
 
 // Initialize the connection
-export const init = async () => {
-    try {
-        // Check if MetaMask is installed
-        if (!window.ethereum) {
-            throw new Error('MetaMask is not installed');
-        }
+// export const init = async () => {
+//     try {
+//         // Check if MetaMask is installed
+//         if (!window.ethereum) {
+//             throw new Error('MetaMask is not installed');
+//         }
 
-        // Request account access if needed
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
+//         // Request account access if needed
+//         await window.ethereum.request({ method: 'eth_requestAccounts' });
 
-        // Create a provider and signer
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        contract = new Contract(contractAddress, contractABI, signer);
+//         // Create a provider and signer
+//         provider = new ethers.providers.Web3Provider(window.ethereum);
+//         const signer = provider.getSigner();
+//         contract = new Contract(contractAddress, contractABI, signer);
 
-        console.log('Available functions:', Object.keys(contract));
-        console.log("New contract instance:", contract);
-    } catch (error) {
-        console.error('Unable to connect:', error);
-        throw new Error('Unable to connect');
-    }
-};
+//         console.log('Available functions:', Object.keys(contract));
+//         console.log("New contract instance:", contract);
+//     } catch (error) {
+//         console.error('Unable to connect:', error);
+//         throw new Error('Unable to connect');
+//     }
+// };
 
-init(); // Call the async function
+// init(); // Call the async function
 
 // Helper function to send transactions
 const sendTransaction = async (transactionFunction: (...args: any[]) => Promise<any>, ...args: any[]): Promise<string> => {
