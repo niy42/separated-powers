@@ -23,9 +23,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <header>
-          <nav>DAO Navigation</nav>
-        </header>
+        {/* <header> */}
+          {/* <nav>DAO Navigation</nav> */}
+        {/* </header> */}
         <ThemeProvider>
           {children}
         </ThemeProvider>
