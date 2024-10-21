@@ -1,0 +1,713 @@
+{
+    "abi": [
+        {
+            "inputs": [],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "value",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "address",
+                    "name": "acceptor",
+                    "type": "address"
+                }
+            ],
+            "name": "CoreValueAccepted",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "value",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "address",
+                    "name": "proposer",
+                    "type": "address"
+                }
+            ],
+            "name": "CoreValueProposed",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "lawId",
+                    "type": "uint256"
+                }
+            ],
+            "name": "LawActivated",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "lawId",
+                    "type": "uint256"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "description",
+                    "type": "string"
+                }
+            ],
+            "name": "LawAdded",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "lawId",
+                    "type": "uint256"
+                }
+            ],
+            "name": "LawDeactivated",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "lawId",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "blockDelay",
+                    "type": "uint256"
+                }
+            ],
+            "name": "LawFinalized",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "address",
+                    "name": "member",
+                    "type": "address"
+                }
+            ],
+            "name": "MemberExpelled",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "address",
+                    "name": "member",
+                    "type": "address"
+                }
+            ],
+            "name": "MemberReinstated",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "address",
+                    "name": "member",
+                    "type": "address"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "address",
+                    "name": "admin",
+                    "type": "address"
+                }
+            ],
+            "name": "MemberRevoked",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "proposalId",
+                    "type": "uint256"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "address",
+                    "name": "proposer",
+                    "type": "address"
+                }
+            ],
+            "name": "ProposalCreated",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "proposalId",
+                    "type": "uint256"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "address",
+                    "name": "voter",
+                    "type": "address"
+                }
+            ],
+            "name": "ProposalVoted",
+            "type": "event"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "_value",
+                    "type": "string"
+                }
+            ],
+            "name": "acceptCoreValue",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "_lawId",
+                    "type": "uint256"
+                }
+            ],
+            "name": "activateLaw",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "_member",
+                    "type": "address"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "_isSenior",
+                    "type": "bool"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "_isWhale",
+                    "type": "bool"
+                }
+            ],
+            "name": "addMember",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "admin",
+            "outputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "_address",
+                    "type": "address"
+                }
+            ],
+            "name": "agCoinBalance",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "challengeExpulsion",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "claimWhaleRole",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "",
+                    "type": "string"
+                }
+            ],
+            "name": "coreValues",
+            "outputs": [
+                {
+                    "internalType": "string",
+                    "name": "value",
+                    "type": "string"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "accepted",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "_lawId",
+                    "type": "uint256"
+                }
+            ],
+            "name": "deactivateLaw",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "_member",
+                    "type": "address"
+                }
+            ],
+            "name": "expelMember",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "lawId",
+                    "type": "string"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "blockDelay",
+                    "type": "uint256"
+                }
+            ],
+            "name": "finalizeLaw",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "_lawId",
+                    "type": "uint256"
+                }
+            ],
+            "name": "finalizeLawActivation",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "_member",
+                    "type": "address"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "_amount",
+                    "type": "uint256"
+                }
+            ],
+            "name": "increaseBalance",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "joinAsMember",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "name": "laws",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "id",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "isActive",
+                    "type": "bool"
+                },
+                {
+                    "internalType": "string",
+                    "name": "description",
+                    "type": "string"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "name": "members",
+            "outputs": [
+                {
+                    "internalType": "bool",
+                    "name": "isSenior",
+                    "type": "bool"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "isWhale",
+                    "type": "bool"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "isMember",
+                    "type": "bool"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "balance",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "isRevoked",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "nextLawId",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "nextProposalId",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "name": "proposals",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "id",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "string",
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "voteCount",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "enum AgDAOCoin.ProposalStatus",
+                    "name": "status",
+                    "type": "uint8"
+                },
+                {
+                    "internalType": "address",
+                    "name": "proposer",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "_value",
+                    "type": "string"
+                }
+            ],
+            "name": "proposeCoreValue",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "_description",
+                    "type": "string"
+                }
+            ],
+            "name": "proposeLawActivation",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "_description",
+                    "type": "string"
+                }
+            ],
+            "name": "proposeNewValue",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "name": "proposedCoreValues",
+            "outputs": [
+                {
+                    "internalType": "string",
+                    "name": "",
+                    "type": "string"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "_member",
+                    "type": "address"
+                }
+            ],
+            "name": "reinstateMember",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "_member",
+                    "type": "address"
+                }
+            ],
+            "name": "revokeMember",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "_member",
+                    "type": "address"
+                }
+            ],
+            "name": "seniorReinstateMember",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "name": "seniors",
+            "outputs": [
+                {
+                    "internalType": "bool",
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "to",
+                    "type": "address"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                }
+            ],
+            "name": "transferAgCoins",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "_proposalId",
+                    "type": "uint256"
+                }
+            ],
+            "name": "voteOnProposal",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "whaleCoinThreshold",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "name": "whales",
+            "outputs": [
+                {
+                    "internalType": "bool",
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        }
+    ]
+}
