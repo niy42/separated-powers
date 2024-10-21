@@ -1,7 +1,8 @@
 "use client"
 
 import React, { useState } from 'react';
-import { finalizeLaw } from '../../utils/blockchainUtils';
+// import { finalizeLaw } from '../blockChainUtils/blockchainUtils';
+import { finalizeLaw } from '@/blockChainUtils/blockChainUtils';
 
 interface AdminActionsProps {
     adminAddress: string;

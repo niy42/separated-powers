@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import { proposeNewValue, init, contract } from '../../utils/blockchainUtils';
+import { proposeNewValue, init, contract } from '@/blockChainUtils/blockChainUtils';
 import { useTheme } from '@/context/ThemeContext';
 
 const MemberActions: React.FC = () => {

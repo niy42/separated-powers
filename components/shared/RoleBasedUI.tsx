@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getRole, getBalance } from '../../utils/blockchainUtils2';
+import { getRole, getBalance } from '@/blockChainUtils/blockchainUtils2';
+
 import MemberActions from '../shared/MemberActions';
 import WhaleActions from '../shared/WhaleActions';
 import SeniorActions from '../shared/SeniorActions';
@@ -31,9 +32,12 @@ const RoleBasedUI: React.FC<RoleBasedUIProps> = ({ address }) => {
             <h2>Your Role: {role}</h2>
             <p>Your Balance: {balance} agCoins</p>
             {role === 'Member' && <MemberActions />}
-            {role === 'Whale' && <WhaleActions address={address} />}
-            {role === 'Senior' && <SeniorActions seniorAddress={address} />}
-            {role === 'Admin' && <AdminActions adminAddress={address} />}
+            {/* address={address} */}
+            {role === 'Whale' && <WhaleActions />}
+            {/* seniorAddress={address}  */}
+            {role === 'Senior' && <SeniorActions />}
+            {/* adminAddress={address} */}
+            {role === 'Admin' && <AdminActions  />}
         </div>
     );
 };

@@ -5,7 +5,7 @@ import AdminDashboard from "@/components/shared/AdminActions";
 import MemberActions from "@/components/shared/MemberActions";
 import WhaleActions from "@/components/shared/WhaleActions";
 import SeniorActions from "@/components/shared/SeniorActions";
-import { getRole } from "../utils/blockchainUtils";
+import { getRole } from "@/blockChainUtils/blockChainUtils";
 import { ethers } from "ethers";
 import AdminActions from "@/components/shared/AdminActions";
 import JoinAsMember from "@/components/shared/JoinAsMember";

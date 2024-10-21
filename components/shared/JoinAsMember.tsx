@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react';
-import { joinAsMember } from '../../utils/blockchainUtils';
+import { joinAsMember } from '@/blockChainUtils/blockChainUtils';
 
 const JoinAsMember = () => {
     const [loading, setLoading] = useState(false);

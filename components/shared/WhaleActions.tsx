@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import { proposeCoreValue, acceptCoreValue, revokeMember } from '../../utils/blockchainUtils';
+import { proposeCoreValue, acceptCoreValue, revokeMember } from '@/blockChainUtils/blockChainUtils';
 
 interface WhaleActionsProps {
     address: string;
