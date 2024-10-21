@@ -48,6 +48,7 @@ contract AgDAOCoin {
     event CoreValueAccepted(string value, address acceptor);
     event MemberRevoked(address member, address admin);
     event MemberReinstated(address member);
+
     event LawFinalized(uint256 lawId, uint256 blockDelay);
     event ProposalCreated(uint256 proposalId, string description, address proposer);
     event ProposalVoted(uint256 proposalId, address voter);
@@ -120,6 +121,7 @@ contract AgDAOCoin {
     }
 
     // Law finalization
+
     function finalizeLaw(string memory _description, uint256 blockDelay) external onlyAdmin {
         laws[nextLawId] = Law(nextLawId, false, _description);
         emit LawFinalized(nextLawId, blockDelay);
@@ -210,6 +212,8 @@ contract AgDAOCoin {
         Law storage law = laws[_lawId];
         require(law.isActive, "Law is not yet active");
         // Add final check or time delay logic for law activation
+        // Law is now fully active
+
     }
 
     // Transfer agCoins between members
@@ -231,5 +235,5 @@ contract AgDAOCoin {
             allProposals[i] = proposals[i];
         }
         return allProposals;
-    }
+ 
 }
