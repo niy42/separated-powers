@@ -48,7 +48,7 @@ const DashboardPage: React.FC = () => {
         <div className="p-6 bg-gray-100 min-h-screen flex flex-col items-center w-screen">
             <h1 className="text-3xl font-bold text-center mb-2">Welcome to AgDAO</h1>
             <h2 className="text-lg mb-4 text-center">A decentralised system of checks and balances for funding aligned accounts</h2>
-            <div className="flex justify-center mb-8 w-full items-center">
+            <div className="flex flex-col justify-center mb-8 w-full items-center">
                 <div className="bg-gray-400 py-2 px-8 rounded-lg hover:from-blue-500 hover:to-blue-700 shadow-lg z-10 cursor-pointer transition duration-200">
                     {ready && wallet && authenticated ? (
                         <p className="text-white">
@@ -62,9 +62,24 @@ const DashboardPage: React.FC = () => {
                         </button>
                     )}
                 </div>
+
+                <div className="max-w-3xl bg-gray-200 text-center border border-gray-300 py-2 px-4 rounded-lg shadow-lg z-10 mt-6">
+                    <h2 className="font-bold mb-4"> Goal: Fund projects that are ‘aligned’ with core values of the agDAO. </h2>
+                    
+                    <ul> 
+                        <li>0. Anyone can become a community member of AgDao.</li>
+                        <li>1. Community members are paid in agCoins for governance participation.</li>
+                        <li>2. Community members can transfer agCoins to any address they want.</li> 
+                        <li>3. Whales can revoke member roles of accounts that fund non-aligned addresses.</li>
+                        <li>4. Members can challenge this decision and be reinstated.</li>
+                        <li>5. Whales can propose new laws, senior can accept them, and the admin implements them.</li>
+                    </ul>
+
+                    <h2 className="font-bold mt-4"> See below for the concrete implementation of AgDAO </h2>
+                </div>
             </div>
             
-            <div className="flex flex-row my-6 w-full">
+            <div className="flex flex-row mb-6 w-full">
                 <button 
                     className="w-full font-bold font-xl text-center aria-selected:opacity-100 opacity-25 py-2 px-4"
                     onClick={() => setMode("Values")}
