@@ -6,10 +6,10 @@ import { useActions } from '@/hooks/useActions';
 import { ethers } from 'ethers';
 
 const WhaleActions: React.FC<useActionsProps> = ({wallet, disabled}: useActionsProps ) => {
-    const [addressLaw, setAddressLaw] = useState<string>('');
+    const [addressLaw, setAddressLaw] = useState<`0x${string}`>('0x0');
     const [toInclude, setToInclude] = useState<boolean>(true);
     const [newValue, setNewValue] = useState<string>('');
-    const [memberToRevoke, setMemberToRevoke] = useState<string>('');
+    const [memberToRevoke, setMemberToRevoke] = useState<`0x${string}`>('0x0');
     const [description, setDescription] = useState<string>('');
     const {status, error, law, propose, execute} = useActions(); 
     const abiCoder = new ethers.utils.AbiCoder();
@@ -99,7 +99,7 @@ const WhaleActions: React.FC<useActionsProps> = ({wallet, disabled}: useActionsP
                 <input
                     type="text"
                     value={addressLaw}
-                    onChange={(e) => setAddressLaw(e.target.value)}
+                    onChange={(e) => setAddressLaw(e.target.value as `0x${string}`)}
                     placeholder="Enter the address of the law to be (de-)activated."
                     maxLength={100}
                     className="border border-white rounded-lg p-2 mb-4 w-full"
@@ -148,7 +148,7 @@ const WhaleActions: React.FC<useActionsProps> = ({wallet, disabled}: useActionsP
                 <input
                     type="text"
                     value={memberToRevoke}
-                    onChange={(e) => setMemberToRevoke(e.target.value)}
+                    onChange={(e) => setMemberToRevoke(e.target.value as `0x${string}`)}
                     placeholder="Enter proposal ID through which whales revoked he member."
                     maxLength={100}
                     className="border border-white rounded-lg p-2 mb-4 w-full"

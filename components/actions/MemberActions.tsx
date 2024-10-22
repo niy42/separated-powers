@@ -12,7 +12,7 @@ import { useActionsProps } from '@/context/types';
 
 const MemberActions: React.FC<useActionsProps> = ({wallet, disabled}: useActionsProps ) => {
     const [newValue, setNewValue] = useState<string>('');
-    const [whaleAddress, setWhaleAddress] = useState<string>('');
+    const [whaleAddress, setWhaleAddress] = useState<`0x${string}`>('0x0');
     const [description, setDescription] = useState<string>('');
     const {status, error, law, propose, execute} = useActions(); 
     const abiCoder = new ethers.utils.AbiCoder();
@@ -86,7 +86,7 @@ const MemberActions: React.FC<useActionsProps> = ({wallet, disabled}: useActions
                     <input
                         type="text"
                         value={newValue}
-                        onChange={(e) => setWhaleAddress(e.target.value)}
+                        onChange={(e) => setWhaleAddress(e.target.value as `0x${string}`)}
                         placeholder="Enter account address"
                         className="border border-white rounded-lg p-2 mb-4 w-full"
                     />

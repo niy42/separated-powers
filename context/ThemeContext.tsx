@@ -14,20 +14,15 @@ import React, {
 interface ThemeContextProps {
     theme: string;
     setTheme: Dispatch<SetStateAction<string>>;
-    address: string,
-    setAddress: Dispatch<SetStateAction<string>>
 }
 
 const ThemeContext = createContext<ThemeContextProps>({
     theme: 'dark',
-    setTheme: () => { },
-    address: "",
-    setAddress: () => {},
+    setTheme: () => { }
 });
 
 const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [theme, setTheme] = useState<string>('light');
-    const [address, setAddress] = useState<string>("")
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -43,9 +38,7 @@ const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     return (
         <ThemeContext.Provider value={{
             theme,
-            setTheme,
-            address,
-            setAddress
+            setTheme
         }}>
             {children}
         </ThemeContext.Provider>

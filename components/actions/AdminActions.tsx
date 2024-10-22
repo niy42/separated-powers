@@ -6,8 +6,8 @@ import { ethers } from 'ethers';
 import React, { useState } from 'react';
 
 const AdminActions:  React.FC<useActionsProps> = ({wallet, disabled}: useActionsProps ) => {
-    const [addressLaw, setAddressLaw] = useState<string>('');
-    const [descriptionHash, setDescriptionHash] = useState<string>('');
+    const [addressLaw, setAddressLaw] = useState<`0x${string}`>('0x0');
+    const [descriptionHash, setDescriptionHash] = useState<`0x${string}`>('0x0');
     const [toInclude, setToInclude] = useState<boolean>(true);
     const {status, error, law, execute} = useActions(); 
     const abiCoder = new ethers.utils.AbiCoder();
@@ -36,7 +36,7 @@ const AdminActions:  React.FC<useActionsProps> = ({wallet, disabled}: useActions
                 <input
                     type="text"
                     value={addressLaw}
-                    onChange={(e) => setAddressLaw(e.target.value)}
+                    onChange={(e) => setAddressLaw(e.target.value as `0x${string}`)}
                     placeholder="Enter the address of the law."
                     maxLength={100}
                     className="border border-white rounded-lg p-2 mb-4 w-full"
@@ -44,7 +44,7 @@ const AdminActions:  React.FC<useActionsProps> = ({wallet, disabled}: useActions
                 <input
                     type="text"
                     value={descriptionHash}
-                    onChange={(e) => setDescriptionHash(e.target.value)}
+                    onChange={(e) => setDescriptionHash(e.target.value as `0x${string}`)}
                     placeholder="Enter the description hash of the proposal." 
                     maxLength={35}
                     className="border border-white rounded-lg p-2 mb-4 w-full"

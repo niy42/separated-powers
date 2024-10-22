@@ -6,8 +6,8 @@ import { useActions } from '@/hooks/useActions';
 import { ethers } from 'ethers';
 
 const SeniorActions: React.FC<useActionsProps> = ({wallet, disabled}: useActionsProps ) => {
-    const [addressLaw, setAddressLaw] = useState<string>('');
-    const [addressSenior, setAddressSenior] = useState<string>('');
+    const [addressLaw, setAddressLaw] = useState<`0x${string}`>('0x0');
+    const [addressSenior, setAddressSenior] = useState<`0x${string}`>('0x0');
     const [revokeId, setRevokeId] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const [toInclude, setToInclude] = useState<boolean>(true);
@@ -74,7 +74,7 @@ const SeniorActions: React.FC<useActionsProps> = ({wallet, disabled}: useActions
                 <input
                     type="text"
                     value={addressLaw}
-                    onChange={(e) => setAddressLaw(e.target.value)}
+                    onChange={(e) => setAddressLaw(e.target.value as `0x${string}`)}
                     placeholder="Enter the address of the law."
                     maxLength={100}
                     className="border border-white rounded-lg p-2 mb-4 w-full"
@@ -123,7 +123,7 @@ const SeniorActions: React.FC<useActionsProps> = ({wallet, disabled}: useActions
                 <input
                     type="text"
                     value={addressSenior}
-                    onChange={(e) => setAddressSenior (e.target.value)}
+                    onChange={(e) => setAddressSenior (e.target.value as `0x${string}`)}
                     placeholder="Enter the address of the account to be assign a senior role."
                     maxLength={100}
                     className="border border-white rounded-lg p-2 mb-4 w-full"
@@ -200,7 +200,7 @@ const SeniorActions: React.FC<useActionsProps> = ({wallet, disabled}: useActions
                 <input
                     type="text"
                     value={addressSenior}
-                    onChange={(e) => setAddressSenior (e.target.value)}
+                    onChange={(e) => setAddressSenior (e.target.value as `0x${string}`)}
                     placeholder="Enter the address of the account to be revoked a senior role."
                     maxLength={100}
                     className="border border-white rounded-lg p-2 mb-4 w-full"

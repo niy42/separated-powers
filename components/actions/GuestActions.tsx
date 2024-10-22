@@ -6,7 +6,7 @@ import { useActions } from '@/hooks/useActions';
 import { ethers } from 'ethers';
 
 const GuestActions: React.FC<useActionsProps> = ({wallet, disabled}: useActionsProps ) => {
-    const [addressSenior, setAddressSenior] = useState<string>('');
+    const [addressSenior, setAddressSenior] = useState<`0x${string}`>('0x0');
     const [revokeId, setRevokeId] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const {status, error, law, propose, execute} = useActions(); 
